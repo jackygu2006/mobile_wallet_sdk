@@ -145,6 +145,7 @@ function _mergeCrowdLoanBids(winners: any[], loans: any[]): any[] {
 
 async function _queryAuctionInfo(api: ApiPromise) {
   const data = await Promise.all([
+    // 没有用
     api.query.auctions?.auctionCounter(),
     api.query.auctions?.auctionInfo()
   ]);
@@ -163,11 +164,12 @@ async function _queryAuctionInfo(api: ApiPromise) {
   const minContribution = api.consts.crowdloan.minContribution as BlockNumber;
   const ranges = _getLeaseRanges(api);
   const [bestNumber, auctionInfo, fundData, leasesData, initialEntries] = await Promise.all([
-    api.derive.chain.bestNumber(),
+    // 用不上
+    api.derive.chain.bestNumber(), 
     _queryAuctionInfo(api),
-    api.query.crowdloan.funds.entries(),
-    api.query.slots.leases.entries(),
-    api.query.auctions?.winning.entries()
+    api.query.crowdloan.funds.entries(), // xxnetwork no
+    api.query.slots.leases.entries(), // xxnetwork no
+    api.query.auctions?.winning.entries() // xxnetwork no
   ]);
 
   const leases = leasesData.map(([paraId]) => paraId.toHuman()[0].replace(/,/g, ""));
@@ -194,7 +196,7 @@ async function _queryAuctionInfo(api: ApiPromise) {
  * @param {String} pubKey
  */
 async function queryUserContributions(api: ApiPromise, paraId: string, pubKey: string) {
-  const fund = await api.query.crowdloan.funds(paraId) as any;
+  const fund = await api.query.crowdloan.funds(paraId) as any; // xxnetwork no
   const childKey = _createChildKey(fund.unwrap().trieIndex);
   const value = await api.rpc.childstate.getStorage(childKey, pubKey);
   if (value.isSome) {

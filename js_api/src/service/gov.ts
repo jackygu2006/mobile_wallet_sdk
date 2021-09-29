@@ -235,7 +235,10 @@ async function getCouncilMotions(api: ApiPromise) {
 }
 
 async function getDemocracyUnlocks(api: ApiPromise, address: string) {
-  const locks = await Promise.all([api.derive.chain.bestNumber(), api.derive.democracy.locks(address)]);
+  const locks = await Promise.all([
+    api.derive.chain.bestNumber(), 
+    api.derive.democracy.locks(address)
+  ]);
   return locks[1].filter(({ isFinished, unlockAt }) => isFinished && locks[0].gt(unlockAt)).map(({ referendumId }) => referendumId);
 }
 

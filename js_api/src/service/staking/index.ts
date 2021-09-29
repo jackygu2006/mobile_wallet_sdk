@@ -347,6 +347,7 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       : [BN_ZERO, BN_ZERO];
     const skipRewards = bondTotal.isZero();
     // some overrides (e.g. Darwinia Crab) does not have the value field in IndividualExposure
+
     const minNominated = (exposure.others || []).reduce((min: BN, { value = api.createType('Compact<Balance>') }): BN => {
       const actual = value.unwrap();
 
@@ -510,6 +511,7 @@ function _extractTargetsInfo(api: ApiPromise, electedDerive: DeriveStakingElecte
       ? minNominated
       : min;
   }, BN_ZERO);
+
   // all validators, calc median commission
   const validators = sortValidators(arrayFlatten([elected, waiting]));
   const commValues = validators.map(({ commissionPer }) => commissionPer).sort((a, b) => a - b);
@@ -549,19 +551,21 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
  * Query all validators info.
  */
 async function querySortedTargets(api: ApiPromise) {
- const data = await Promise.all([
-  api.query.staking.historyDepth(),
-  api.query.balances.totalIssuance(),
-  api.derive.staking.electedInfo({withExposure: true, withPrefs: true}),
-  api.derive.staking.waitingInfo({withPrefs: true}),
-  api.derive.session.info(),
-  api.query.staking.minNominatorBond(),
- ]);
+  console.log("====== querySortedTargets Start ======");
+  const data = await Promise.all([
+    api.query.staking.historyDepth(),
+    api.query.balances.totalIssuance(),
+    api.derive.staking.electedInfo({withExposure: true, withPrefs: true}),
+    api.derive.staking.waitingInfo({withPrefs: true}),
+    api.derive.session.info(),
+    api.query.staking.minNominatorBond(), // xxnetwork 没有这个参数 ######
+  ]);
+  console.log("====== querySortedTargets End ======");
  
- const partial = data[1] && data[2] && data[3] && data[4]
- ? _extractTargetsInfo(api, data[2], data[3], data[1], _transfromEra(data[4]), data[0])
- : {};
- return { inflation: { inflation: 0, stakedReturn: 0 }, medianComm: 0, ...partial, minNominatorBond: data[5] };
+  const partial = data[1] && data[2] && data[3] && data[4]
+  ? _extractTargetsInfo(api, data[2], data[3], data[1], _transfromEra(data[4]), data[0])
+  : {};
+  return { inflation: { inflation: 0, stakedReturn: 0 }, medianComm: 0, ...partial, minNominatorBond: data[5] };
 }
 
 async function _getOwnStash(api: ApiPromise, accountId: string): Promise<[string, boolean]> {
@@ -779,6 +783,7 @@ function _extractUnbondings(stakingInfo: any, progress: any) {
 async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
   const [account, validators, allStashes, progress] = await Promise.all([
+    // ######
     api.derive.staking.account(stashId),
     api.query.staking.validators(stashId),
     api.derive.staking.stashes().then((res) => res.map((i) => i.toString())),

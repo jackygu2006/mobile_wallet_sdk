@@ -6,7 +6,8 @@ function expect(actual, matcher) {
 
 async function runSettingsTest() {
   console.log("test connect");
-  const endpoint = "wss://kusama.api.onfinality.io/public-ws";
+  // const endpoint = "wss://kusama.api.onfinality.io/public-ws";
+  const endpoint = "wss://protonet.xxlabs.net";
   const connected = await settings.connect([endpoint]);
   expect(connected, endpoint);
   expect(!!api, true);
@@ -129,10 +130,10 @@ async function runAccountTest() {
 }
 
 async function runTests() {
-  // keyring api run without network
-  await runKeyringTest();
   // run settings api to connect to node
   await runSettingsTest();
+  // keyring api run without network
+  await runKeyringTest();
   // run other tests
   await runAccountTest();
 

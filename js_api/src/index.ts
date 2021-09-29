@@ -22,6 +22,9 @@ send("log", "main js loaded");
  * @param {string} nodeEndpoint
  */
 async function connect(nodes: string[]) {
+  // ######
+  console.log("========= connected api =========");
+  console.log(nodes);
   return new Promise(async (resolve, reject) => {
     const wsProvider = new WsProvider(nodes);
     try {

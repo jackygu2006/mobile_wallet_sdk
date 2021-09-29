@@ -26,7 +26,7 @@ class WalletSDK {
     String? jsCode,
   }) async {
     final c = Completer();
-
+    print("============= polkawallet_sdk start =============");
     _service = SubstrateService();
     await _service!.init(
       keyring,

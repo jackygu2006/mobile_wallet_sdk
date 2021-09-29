@@ -9,8 +9,10 @@ class ServiceStaking {
   final SubstrateService serviceRoot;
 
   Future<Map?> queryElectedInfo() async {
+    print("========= queryElectedInfo START =========");
     dynamic data = await serviceRoot.webView!
         .evalJavascript('staking.querySortedTargets(api)', allowRepeat: false);
+    print("========= queryElectedInfo END =========");
     return data;
   }
 
