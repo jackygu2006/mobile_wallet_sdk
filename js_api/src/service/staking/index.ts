@@ -3,7 +3,7 @@ import {
   DeriveStakerReward,
   DeriveStakingElected,
   DeriveSessionInfo,
-  DeriveStakingWaiting
+  DeriveStakingWaiting,
 } from "@polkadot/api-derive/types";
 import type { Option, StorageKey } from '@polkadot/types';
 import { u8aConcat, u8aToHex, BN_ZERO, BN_MILLION, BN_ONE, formatBalance, isFunction, arrayFlatten } from '@polkadot/util';
@@ -11,6 +11,8 @@ import {  Nominations } from "@polkadot/types/interfaces";
 import BN from "bn.js";
 
 import { getInflationParams, Inflation } from './inflation';
+import { u32 } from "@polkadot/api-derive/node_modules/@polkadot/types";
+import { AnyTuple } from "@polkadot/types/types";
 
 const divisor = new BN("1".padEnd(12 + 1, "0"));
 
@@ -552,20 +554,34 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
  */
 async function querySortedTargets(api: ApiPromise) {
   console.log("====== querySortedTargets Start ======");
-  const data = await Promise.all([
-    api.query.staking.historyDepth(),
-    api.query.balances.totalIssuance(),
-    api.derive.staking.electedInfo({withExposure: true, withPrefs: true}),
-    api.derive.staking.waitingInfo({withPrefs: true}),
-    api.derive.session.info(),
-    api.query.staking.minNominatorBond(), // xxnetwork 没有这个参数 ######
-  ]);
+  // let data: [u32, any, DeriveStakingElected, DeriveStakingWaiting, DeriveSessionInfo, any];
+  const historyDepth:u32 = await api.query.staking.historyDepth();
+  const totalIssuance:any = await api.query.balances.totalIssuance();
+  const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
+  const waitingInfo:DeriveStakingWaiting = await api.derive.staking.waitingInfo({withPrefs: true});
+  const info: DeriveSessionInfo = await api.derive.session.info();
+
+  // data = await Promise.all([
+  //   api.query.staking.historyDepth(),
+  //   api.query.balances.totalIssuance(),
+  //   api.derive.staking.electedInfo({withExposure: true, withPrefs: true}),
+  //   api.derive.staking.waitingInfo({withPrefs: true}),
+  //   api.derive.session.info(),
+  //   0
+  // ]);
+  let minNominatorBond;
+  try {
+    minNominatorBond = await api.query.staking.minNominatorBond(); // xxnetwork 没有这个参数 ######
+  } catch (err) {
+    console.log("Not support api.query.staking.minNominatorBond()");
+  }
+  console.log(historyDepth, totalIssuance, electedInfo, waitingInfo, info);
   console.log("====== querySortedTargets End ======");
- 
-  const partial = data[1] && data[2] && data[3] && data[4]
-  ? _extractTargetsInfo(api, data[2], data[3], data[1], _transfromEra(data[4]), data[0])
+
+  const partial = totalIssuance && electedInfo && waitingInfo && info
+  ? _extractTargetsInfo(api, electedInfo, waitingInfo, totalIssuance, _transfromEra(info), historyDepth)
   : {};
-  return { inflation: { inflation: 0, stakedReturn: 0 }, medianComm: 0, ...partial, minNominatorBond: data[5] };
+  return { inflation: { inflation: 0, stakedReturn: 0 }, medianComm: 0, ...partial, minNominatorBond: minNominatorBond };
 }
 
 async function _getOwnStash(api: ApiPromise, accountId: string): Promise<[string, boolean]> {

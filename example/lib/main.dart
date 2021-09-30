@@ -101,11 +101,12 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _connecting = true;
     });
+    print("====== sdk: 4 _connectNode ======");
     final node = NetworkParams();
     node.name = 'Kusama';
     node.endpoint = 'wss://kusama.api.onfinality.io/public-ws/';
     node.ss58 = 2;
-    final res = await widget.sdk.api.connectNode(widget.keyring, [node]);
+    final res = await widget.sdk.api.connectNode(widget.keyring, [node], {});
     if (res != null) {
       setState(() {
         _apiConnected = true;

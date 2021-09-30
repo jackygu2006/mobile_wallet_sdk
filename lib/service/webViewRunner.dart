@@ -164,9 +164,12 @@ class WebViewRunner {
     return c.future;
   }
 
-  Future<NetworkParams?> connectNode(List<NetworkParams> nodes) async {
+  Future<NetworkParams?> connectNode(
+      List<NetworkParams> nodes, Object registryTypes) async {
+    print("====== sdk: 3 connectNode ======");
+    print(registryTypes);
     final dynamic res = await evalJavascript(
-        'settings.connect(${jsonEncode(nodes.map((e) => e.endpoint).toList())})');
+        'settings.connect(${jsonEncode(nodes.map((e) => e.endpoint).toList())}, ${jsonEncode(registryTypes)})');
     if (res != null) {
       final index = nodes.indexWhere((e) => e.endpoint!.trim() == res.trim());
       return nodes[index > -1 ? index : 0];

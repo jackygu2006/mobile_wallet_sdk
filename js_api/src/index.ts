@@ -21,16 +21,25 @@ send("log", "main js loaded");
  *
  * @param {string} nodeEndpoint
  */
-async function connect(nodes: string[]) {
+async function connect(nodes: string[], registryTypes: Object) {
   // ######
   console.log("========= connected api =========");
   console.log(nodes);
+  console.log("registryTypes: " + JSON.stringify(registryTypes));
   return new Promise(async (resolve, reject) => {
     const wsProvider = new WsProvider(nodes);
     try {
-      const res = await ApiPromise.create({
-        provider: wsProvider,
-      });
+      let res: ApiPromise;
+      if(registryTypes === {}) {
+        res = await ApiPromise.create({
+          provider: wsProvider,
+        });
+      } else {
+        res = await ApiPromise.create({
+          provider: wsProvider,
+          types: Object(registryTypes)
+        });
+      }
       (<any>window).api = res;
       const url = nodes[(<any>res)._options.provider.__private_9_endpointIndex];
       send("log", `${url} wss connected success`);

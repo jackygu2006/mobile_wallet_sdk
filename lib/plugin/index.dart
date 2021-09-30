@@ -74,7 +74,8 @@ abstract class PolkawalletPlugin implements PolkawalletPluginBase {
 
   /// This method will be called while user request to query balance.
   Future<void> updateBalances(KeyPairData acc) async {
-    final data = await (sdk.api!.account.queryBalance(acc.address) as FutureOr<BalanceData>);
+    final data = await (sdk.api!.account.queryBalance(acc.address)
+        as FutureOr<BalanceData>);
     _updateBalances(acc, data);
   }
 
@@ -111,9 +112,11 @@ abstract class PolkawalletPlugin implements PolkawalletPluginBase {
   /// 1. connect to nodes.
   /// 2. retrieve network const & state.
   /// 3. subscribe balances & set balancesStore.
-  Future<NetworkParams?> start(Keyring keyring,
-      {List<NetworkParams>? nodes}) async {
-    final res = await sdk.api!.connectNode(keyring, nodes ?? nodeList);
+  Future<NetworkParams?> start(Keyring keyring, List<NetworkParams>? nodes,
+      Object? registryTypes) async {
+    print("====== sdk: 1 ======");
+    final res = await sdk.api!
+        .connectNode(keyring, nodes ?? nodeList, registryTypes ?? {});
     if (res == null) return null;
 
     keyring.setSS58(res.ss58);
@@ -169,7 +172,8 @@ abstract class PolkawalletPlugin implements PolkawalletPluginBase {
 
 abstract class PolkawalletPluginBase {
   /// A plugin's basic info, including: name, primaryColor and icons.
-  final basic = PluginBasicData(name: 'kusama', primaryColor: Colors.black as MaterialColor?);
+  final basic = PluginBasicData(
+      name: 'kusama', primaryColor: Colors.black as MaterialColor?);
 
   /// Plugin should define a list of node to connect
   /// for users of Polkawallet App.

@@ -67,10 +67,13 @@ class PolkawalletApi {
   NetworkParams? get connectedNode => _connectedNode;
 
   /// connect to a list of nodes, return null if connect failed.
-  Future<NetworkParams?> connectNode(
-      Keyring keyringStorage, List<NetworkParams> nodes) async {
+  Future<NetworkParams?> connectNode(Keyring keyringStorage,
+      List<NetworkParams> nodes, Object registryTypes) async {
     _connectedNode = null;
-    final NetworkParams? res = await service!.webView!.connectNode(nodes);
+    print("====== sdk: 2 ======");
+    print(registryTypes);
+    final NetworkParams? res =
+        await service!.webView!.connectNode(nodes, registryTypes);
     if (res != null) {
       _connectedNode = res;
 
