@@ -8,7 +8,9 @@ export default {
     Westend: "westend",
   },
   create: (chain: string, path: string, data: any) =>
-    `https://${chain}.subscan.io/${path}/${data.toString()}`,
+    chain === 'xxnetwork' || chain === 'protonet' 
+      ? `http://subscan.xxnetwork.asia:4399/${path}/${data.toString()}` 
+      : `https://${chain}.subscan.io/${path}/${data.toString()}`,
   isActive: true,
   paths: {
     address: "account",

@@ -554,28 +554,18 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
  */
 async function querySortedTargets(api: ApiPromise) {
   console.log("====== querySortedTargets Start ======");
-  // let data: [u32, any, DeriveStakingElected, DeriveStakingWaiting, DeriveSessionInfo, any];
   const historyDepth:u32 = await api.query.staking.historyDepth();
   const totalIssuance:any = await api.query.balances.totalIssuance();
   const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
   const waitingInfo:DeriveStakingWaiting = await api.derive.staking.waitingInfo({withPrefs: true});
   const info: DeriveSessionInfo = await api.derive.session.info();
 
-  // data = await Promise.all([
-  //   api.query.staking.historyDepth(),
-  //   api.query.balances.totalIssuance(),
-  //   api.derive.staking.electedInfo({withExposure: true, withPrefs: true}),
-  //   api.derive.staking.waitingInfo({withPrefs: true}),
-  //   api.derive.session.info(),
-  //   0
-  // ]);
   let minNominatorBond;
   try {
-    minNominatorBond = await api.query.staking.minNominatorBond(); // xxnetwork 没有这个参数 ######
+    minNominatorBond = await api.query.staking.minNominatorBond(); // xxnetwork canceled this method
   } catch (err) {
     console.log("Not support api.query.staking.minNominatorBond()");
   }
-  console.log(historyDepth, totalIssuance, electedInfo, waitingInfo, info);
   console.log("====== querySortedTargets End ======");
 
   const partial = totalIssuance && electedInfo && waitingInfo && info
@@ -798,13 +788,21 @@ function _extractUnbondings(stakingInfo: any, progress: any) {
 
 async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
-  const [account, validators, allStashes, progress] = await Promise.all([
-    // ######
-    api.derive.staking.account(stashId),
-    api.query.staking.validators(stashId),
-    api.derive.staking.stashes().then((res) => res.map((i) => i.toString())),
-    api.derive.session.progress(),
-  ]);
+  // $$$$$$ 问题在此
+  console.log("====== getOwnStashInfo Start ======");
+  const account = await api.derive.staking.account(stashId);// // 原因：api-derive变更了，不支持muli方法，需要问Balto要
+  const validators = await api.query.staking.validators(stashId);
+  const allStashes = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
+  const progress = await api.derive.session.progress();
+  // const [account, validators, allStashes, progress] = await Promise.all([
+  //   api.derive.staking.account(stashId),
+  //   api.query.staking.validators(stashId),
+  //   api.derive.staking.stashes().then((res) => res.map((i) => i.toString())),
+  //   api.derive.session.progress(),
+  // ]);
+  console.log(account, validators, allStashes, progress);
+  console.log("====== getOwnStashInfo End ======");
+
   const stashInfo = _extractStakerState(accountId, stashId, allStashes, [
     isOwnStash,
     account,
