@@ -56,7 +56,9 @@ class SubScanApi {
     if (network.contains('acala')) {
       network = 'acala-testnet';
     }
-    return 'https://$network.api.subscan.io/api/scan';
+    return network == 'xxnetwork' || network == 'protonet'
+        ? 'http://subscan.xxnetwork.asia:4399/api/scan'
+        : 'https://$network.api.subscan.io/api/scan';
   }
 
   /// do the request in an isolate to avoid UI stall
@@ -146,14 +148,17 @@ class SubScanApi {
   }
 
   static Future<Map?> fetchTransfers(SubScanRequestParams params) async {
+    // ###### 获取与当前帐号相关的交易记录
     String url = '${getSnEndpoint(params.network!)}/transfers';
     String body = jsonEncode({
       "page": params.page,
       "row": params.row,
       "address": params.address,
     });
+    print("====== fetchTransfers $url 开始 ======");
     Response res =
         await post(Uri.parse(url), headers: post_headers, body: body);
+    print("====== fetchTransfers $url 结束 ======");
     if (res.body != null) {
       final obj = await compute(jsonDecode, res.body);
       if (params.sendPort != null) {
@@ -168,7 +173,7 @@ class SubScanApi {
   }
 
   static Future<Map?> fetchTxs(SubScanRequestParams para) async {
-    // ######
+    // ###### 这个API在subscan中已经有了
     String url = '${getSnEndpoint(para.network!)}/extrinsics';
     Map params = {
       "page": para.page,
@@ -182,8 +187,10 @@ class SubScanApi {
       params['call'] = para.call;
     }
     String body = jsonEncode(params);
+    print("====== fetchTxs $url 开始 ======");
     Response res =
         await post(Uri.parse(url), headers: post_headers, body: body);
+    print("====== fetchTxs $url 结束 ======");
     if (res.body != null) {
       final obj = await compute(jsonDecode, res.body);
       if (para.sendPort != null) {
@@ -206,8 +213,11 @@ class SubScanApi {
       "row": para.row,
     };
     String body = jsonEncode(params);
+    print("====== fetchRewardTxs $url 开始 ======");
     Response res =
         await post(Uri.parse(url), headers: post_headers, body: body);
+    print(res);
+    print("====== fetchRewardTxs $url 结束 ======");
     if (res.body != null) {
       final obj = await compute(jsonDecode, res.body);
       if (para.sendPort != null) {

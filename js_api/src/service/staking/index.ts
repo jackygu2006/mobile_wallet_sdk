@@ -616,6 +616,7 @@ function _extractStakerState(
     validateInfo,
   ]
 ) {
+  console.log("====== a ======" + rewardDestination);
   const isStashNominating = !!nominators?.length;
   const isStashValidating =
     !(Array.isArray(validateInfo)
@@ -624,11 +625,21 @@ function _extractStakerState(
   const nextConcat = u8aConcat(...nextSessionIds.map((id: any) => id.toU8a()));
   const currConcat = u8aConcat(...sessionIds.map((id: any) => id.toU8a()));
   const controllerId = _toIdString(_controllerId);
+  console.log("====== b ====== " + JSON.stringify(rewardDestination)); // {staked: null}
+  console.log("====== c ====== " + accountId + ", " + controllerId);
 
+  let destinationId, destination; // 测试用 $$$$$$
+  try {
+    destinationId = rewardDestination?.toNumber() || 0;
+    destination = rewardDestination?.toString().toLowerCase();
+  } catch (err) {
+    destinationId = 0;
+    destination = "staked";
+  }
   return {
     controllerId,
-    destination: rewardDestination?.toString().toLowerCase(),
-    destinationId: rewardDestination?.toNumber() || 0,
+    destination,
+    destinationId,
     exposure,
     hexSessionIdNext: u8aToHex(nextConcat, 48),
     hexSessionIdQueue: u8aToHex(
@@ -790,7 +801,41 @@ async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
   // $$$$$$ 问题在此
   console.log("====== getOwnStashInfo Start ======");
-  const account = await api.derive.staking.account(stashId);// // 原因：api-derive变更了，不支持muli方法，需要问Balto要
+  let account;
+  try {
+    account = await api.derive.staking.account(stashId);// // 原因：api-derive变更了，不支持muli方法，需要问Balto要
+  } catch(err) {
+    account = {
+      nextSessionIds:[],
+      sessionIds:[],
+      accountId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
+      controllerId:null,
+      exposure:{
+        total:0,
+        own:0,
+        others:[]
+      },
+      nominators:[],
+      rewardDestination:{
+        staked:null
+      },
+      stakingLedger:{
+        stash:"5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+        total:0,
+        active:0,
+        unlocking:[],
+        claimedRewards:[]
+      },
+      stashId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
+      validatorPrefs:{
+        commission:0,
+        blocked:false,
+        cmix_root:"0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      redeemable:"0x00000000000000000000000000000000"
+    };
+  }
+  
   const validators = await api.query.staking.validators(stashId);
   const allStashes = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
   const progress = await api.derive.session.progress();
@@ -800,7 +845,10 @@ async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   //   api.derive.staking.stashes().then((res) => res.map((i) => i.toString())),
   //   api.derive.session.progress(),
   // ]);
-  console.log(account, validators, allStashes, progress);
+  console.log(JSON.stringify(account));
+  console.log(JSON.stringify(validators));
+  console.log(JSON.stringify(allStashes)); 
+  console.log(JSON.stringify(progress));
   console.log("====== getOwnStashInfo End ======");
 
   const stashInfo = _extractStakerState(accountId, stashId, allStashes, [
@@ -808,11 +856,14 @@ async function getOwnStashInfo(api: ApiPromise, accountId: string) {
     account,
     validators,
   ]);
+
   const unbondings = _extractUnbondings(account, progress);
+
   let inactives: any;
   if (stashInfo.nominating && stashInfo.nominating.length) {
     inactives = await _getInactives(api, stashId, stashInfo.nominating);
   }
+
   return {
     account,
     ...stashInfo,

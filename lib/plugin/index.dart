@@ -114,7 +114,7 @@ abstract class PolkawalletPlugin implements PolkawalletPluginBase {
   /// 3. subscribe balances & set balancesStore.
   Future<NetworkParams?> start(Keyring keyring, List<NetworkParams>? nodes,
       Object? registryTypes) async {
-    print("====== sdk: 1 ======");
+    // print("====== sdk: 1 ======");
     final res = await sdk.api!
         .connectNode(keyring, nodes ?? nodeList, registryTypes ?? {});
     if (res == null) return null;

@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
+// import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:polkawallet_sdk/api/apiKeyring.dart';
 import 'package:polkawallet_sdk/service/index.dart';
 import 'package:polkawallet_sdk/storage/keyring.dart';
@@ -54,6 +55,18 @@ class ServiceKeyring {
     final dynamic acc =
         await serviceRoot.webView!.evalJavascript('keyring.gen()');
     return acc['mnemonic'];
+  }
+
+  /// Generate a set of new Quantum Secured mnemonic. ######
+  Future<String?> generateQSMnemonic(String? password) async {
+    // Get sleeve.wasm
+    final byteBuffer = (await rootBundle
+            .load('packages/polkawallet_sdk/assets/wasm/sleeve.wasm'))
+        .buffer
+        .asUint8List();
+    final dynamic acc = await serviceRoot.webView!
+        .evalJavascript('keyring.genQS($byteBuffer,$password)');
+    return acc['mnemonic']['Mnemonic'];
   }
 
   /// Import account from mnemonic/rawSeed/keystore.

@@ -24,6 +24,12 @@ class ApiKeyring {
     return mnemonic;
   }
 
+  /// Generate a set of new Quantum Secured mnemonic ######
+  Future<String?> generateQSMnemonic(String? password) async {
+    final mnemonic = await service!.generateQSMnemonic(password);
+    return mnemonic;
+  }
+
   /// Import account from mnemonic/rawSeed/keystore.
   /// param [cryptoType] can be `sr25519`(default) or `ed25519`.
   /// throw error if import failed.

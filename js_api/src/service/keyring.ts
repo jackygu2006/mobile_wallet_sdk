@@ -14,6 +14,9 @@ import { ApiPromise, SubmittableResult } from "@polkadot/api";
 import { SubmittableExtrinsic } from "@polkadot/api/types";
 import { ITuple } from "@polkadot/types/types";
 import { DispatchError } from "@polkadot/types/interfaces";
+
+import { fetchSleeveGenerator } from "./sleeve";
+
 let keyring = new Keyring({ ss58Format: 0, type: "sr25519" });
 
 /**
@@ -24,6 +27,17 @@ async function gen() {
   return {
     mnemonic,
   };
+}
+
+/**
+ * Generate Quantum secured mnemonic ######
+ */
+async function genQS(bytesBuffer: Uint8Array, password?: String) {
+  const generator = await fetchSleeveGenerator(Uint8Array.from(bytesBuffer).buffer);
+  const mnemonic = generator(password ?? "");
+  return {
+    mnemonic,
+  }
 }
 
 /**
@@ -424,6 +438,7 @@ async function verifySignature(message: string, signature: string, address: stri
 export default {
   initKeys,
   gen,
+  genQS,
   recover,
   txFeeEstimate,
   sendTx,
