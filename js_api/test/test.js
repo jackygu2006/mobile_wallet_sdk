@@ -184,13 +184,6 @@ async function runKeyringTest() {
   expect(passCheck4.success, true);
 
   console.log("keyring tests passed.");
-
-  console.log("Quantum Sesured keyring tests start...");
-  console.log("generate quantum sesured mnemonic");
-  const mnemonicQS = await keyring.genQS();
-  console.log(JSON.stringify(mnemonicQS.mnemonic));
-  // expect(mnemonic.mnemonic.split(" ").length, 12);
-
 }
 
 async function runAccountTest() {

@@ -23,8 +23,15 @@
     "build": "webpack --mode production",
     "build-dev": "webpack --mode development"
   },
+  "private": true,
+  "homepage": ".",
+  "workspaces": [
+    "packages/*"
+  ],
   "resolutions": {
-    "@polkadot/api": "^5.8.3"
+    "@polkadot/api": "^5.8.3",
+    "@polkadot/api-derive": "workspace:packages/api-derive",
+    "@polkadot/custom-interfaces": "workspace:packages/custom-interfaces"
   },
   "dependencies": {
     "@polkadot/api": "^5.8.3",

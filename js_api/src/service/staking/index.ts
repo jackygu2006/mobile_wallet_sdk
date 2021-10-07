@@ -802,39 +802,39 @@ async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   // $$$$$$ 问题在此
   console.log("====== getOwnStashInfo Start ======");
   let account;
-  try {
+  // try {
     account = await api.derive.staking.account(stashId);// // 原因：api-derive变更了，不支持muli方法，需要问Balto要
-  } catch(err) {
-    account = {
-      nextSessionIds:[],
-      sessionIds:[],
-      accountId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
-      controllerId:null,
-      exposure:{
-        total:0,
-        own:0,
-        others:[]
-      },
-      nominators:[],
-      rewardDestination:{
-        staked:null
-      },
-      stakingLedger:{
-        stash:"5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-        total:0,
-        active:0,
-        unlocking:[],
-        claimedRewards:[]
-      },
-      stashId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
-      validatorPrefs:{
-        commission:0,
-        blocked:false,
-        cmix_root:"0x0000000000000000000000000000000000000000000000000000000000000000"
-      },
-      redeemable:"0x00000000000000000000000000000000"
-    };
-  }
+  // } catch(err) {
+  //   account = {
+  //     nextSessionIds:[],
+  //     sessionIds:[],
+  //     accountId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
+  //     controllerId:null,
+  //     exposure:{
+  //       total:0,
+  //       own:0,
+  //       others:[]
+  //     },
+  //     nominators:[],
+  //     rewardDestination:{
+  //       staked:null
+  //     },
+  //     stakingLedger:{
+  //       stash:"5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
+  //       total:0,
+  //       active:0,
+  //       unlocking:[],
+  //       claimedRewards:[]
+  //     },
+  //     stashId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
+  //     validatorPrefs:{
+  //       commission:0,
+  //       blocked:false,
+  //       cmix_root:"0x0000000000000000000000000000000000000000000000000000000000000000"
+  //     },
+  //     redeemable:"0x00000000000000000000000000000000"
+  //   };
+  // }
   
   const validators = await api.query.staking.validators(stashId);
   const allStashes = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
