@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:polkawallet_sdk/api/api.dart';
+import 'package:polkawallet_sdk/api/types/qsMnemonic.dart';
 import 'package:polkawallet_sdk/api/types/verifyResult.dart';
 import 'package:polkawallet_sdk/service/keyring.dart';
 import 'package:polkawallet_sdk/storage/keyring.dart';
@@ -25,9 +26,8 @@ class ApiKeyring {
   }
 
   /// Generate a set of new Quantum Secured mnemonic ######
-  Future<String?> generateQSMnemonic(String? password) async {
-    final mnemonic = await service!.generateQSMnemonic(password);
-    return mnemonic;
+  Future<QSMnemonic?> generateQSMnemonic(String? password) async {
+    return await service!.generateQSMnemonic(password);
   }
 
   /// Import account from mnemonic/rawSeed/keystore.

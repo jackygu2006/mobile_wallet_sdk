@@ -1,17 +1,21 @@
 import { ApiPromise } from "@polkadot/api";
-import {
-  DeriveStakerReward,
-  DeriveStakingElected,
-  DeriveSessionInfo,
-  DeriveStakingWaiting,
-} from "@polkadot/api-derive/types";
 import type { Option, StorageKey } from '@polkadot/types';
 import { u8aConcat, u8aToHex, BN_ZERO, BN_MILLION, BN_ONE, formatBalance, isFunction, arrayFlatten } from '@polkadot/util';
-import {  Nominations } from "@polkadot/types/interfaces";
 import BN from "bn.js";
 
 import { getInflationParams, Inflation } from './inflation';
-import { u32 } from "@polkadot/api-derive/node_modules/@polkadot/types";
+import { 
+  DeriveSessionInfo,
+  DeriveSessionProgress,
+  DeriveStakerReward,
+  DeriveStakingAccount,
+  DeriveStakingElected,
+  DeriveStakingWaiting,
+} from '@polkadot/api-derive/types';
+
+import type { Balance } from '@polkadot/types/interfaces/runtime';
+// import { ValidatorPrefs } from "@polkadot/custom-interfaces/interfaces/types";
+import { Nominations } from "@polkadot/types/interfaces";
 import { AnyTuple } from "@polkadot/types/types";
 
 const divisor = new BN("1".padEnd(12 + 1, "0"));
@@ -306,7 +310,7 @@ type Result = Record<string, string[]>;
  * Query nominations of staking module.
  */
 async function queryNominations(api: ApiPromise) {
-  const nominators: [StorageKey, Option<Nominations>][] = await api.query.staking.nominators.entries();
+  const nominators: [StorageKey<AnyTuple>, Option<Nominations>][] = await api.query.staking.nominators.entries();
   return nominators.reduce((mapped: Result, [key, optNoms]) => {
     if (optNoms.isSome && key.args.length) {
       const nominatorId = key.args[0].toString();
@@ -554,8 +558,8 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
  */
 async function querySortedTargets(api: ApiPromise) {
   console.log("====== querySortedTargets Start ======");
-  const historyDepth:u32 = await api.query.staking.historyDepth();
-  const totalIssuance:any = await api.query.balances.totalIssuance();
+  const historyDepth = await api.query.staking.historyDepth();
+  const totalIssuance: Balance = await api.query.balances.totalIssuance();
   const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
   const waitingInfo:DeriveStakingWaiting = await api.derive.staking.waitingInfo({withPrefs: true});
   const info: DeriveSessionInfo = await api.derive.session.info();
@@ -801,44 +805,10 @@ async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
   // $$$$$$ 问题在此
   console.log("====== getOwnStashInfo Start ======");
-  let account;
-  // try {
-    account = await api.derive.staking.account(stashId);// // 原因：api-derive变更了，不支持muli方法，需要问Balto要
-  // } catch(err) {
-  //   account = {
-  //     nextSessionIds:[],
-  //     sessionIds:[],
-  //     accountId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
-  //     controllerId:null,
-  //     exposure:{
-  //       total:0,
-  //       own:0,
-  //       others:[]
-  //     },
-  //     nominators:[],
-  //     rewardDestination:{
-  //       staked:null
-  //     },
-  //     stakingLedger:{
-  //       stash:"5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",
-  //       total:0,
-  //       active:0,
-  //       unlocking:[],
-  //       claimedRewards:[]
-  //     },
-  //     stashId:"5GjKLkNJLRw3YvhCQ5wehjcsk1tNHPU6q21Pcu9MtUE6cjTK",
-  //     validatorPrefs:{
-  //       commission:0,
-  //       blocked:false,
-  //       cmix_root:"0x0000000000000000000000000000000000000000000000000000000000000000"
-  //     },
-  //     redeemable:"0x00000000000000000000000000000000"
-  //   };
-  // }
-  
+  const account: DeriveStakingAccount = await api.derive.staking.account(stashId);// // 原因：api-derive变更了，不支持muli方法，需要问Balto要
   const validators = await api.query.staking.validators(stashId);
-  const allStashes = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
-  const progress = await api.derive.session.progress();
+  const allStashes: String[] = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
+  const progress: DeriveSessionProgress = await api.derive.session.progress();
   // const [account, validators, allStashes, progress] = await Promise.all([
   //   api.derive.staking.account(stashId),
   //   api.query.staking.validators(stashId),
