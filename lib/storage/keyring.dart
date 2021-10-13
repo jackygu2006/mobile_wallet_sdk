@@ -32,8 +32,6 @@ class Keyring {
   }
 
   void setCurrent(KeyPairData acc) {
-    print('====== setCurrent 设置当前账户 ======');
-    print(acc);
     store.setCurrentPubKey(acc.pubKey);
     store.setCurrentQSPubKey(acc.qsPubKey ?? '');
   }
@@ -130,16 +128,13 @@ class KeyringPrivateStore {
 
   /// the [GetStorage] package needs to be initiated before use.
   Future<void> init() async {
-    print('====== keyring: init ======');
-    await GetStorage.init(sdk_storage_key); // ^^^^^^
+    await GetStorage.init(sdk_storage_key);
     await _loadKeyPairsFromStorage();
   }
 
   /// load keyPairs form local storage to memory.
   Future<void> _loadKeyPairsFromStorage() async {
-    print('====== _loadKeyPairsFromStorage ======');
     final ls = await _storageOld.getAccountList();
-    print(jsonEncode(ls));
     if (ls.length > 0) {
       ls.retainWhere((e) {
         // delete all storageOld data
@@ -156,14 +151,11 @@ class KeyringPrivateStore {
         return i < 0;
       });
       final List pairs = _storage.keyPairs.val.toList();
-      print(jsonEncode(pairs));
       pairs.addAll(ls);
       _storage.keyPairs.val = pairs;
 
       // load current account pubKey ^^^^^^
       final curr = await _storageOld.getCurrentAccount();
-      print('====== keyring: curr ======');
-      print(curr);
       if (curr != null && curr.isNotEmpty) {
         setCurrentPubKey(curr);
         _storageOld.setCurrentAccount('');
@@ -189,8 +181,6 @@ class KeyringPrivateStore {
   Future<void> addAccount(Map acc) async {
     final pairs = _storage.keyPairs.val.toList(); // ^^^^^^
     // remove duplicated account and add a new one
-    print('====== storage::addAccount ===========');
-    print(acc);
     pairs.retainWhere((e) => e['pubKey'] != acc['pubKey']);
     pairs.add(acc);
     _storage.keyPairs.val = pairs;
@@ -200,8 +190,6 @@ class KeyringPrivateStore {
   }
 
   Future<void> addContact(Map acc) async {
-    print('====== storage::addContact ===========');
-    print(acc);
     final ls = _storage.contacts.val.toList();
     ls.add(acc);
     _storage.contacts.val = ls;
@@ -213,8 +201,6 @@ class KeyringPrivateStore {
   }
 
   Future<void> updateAccount(Map acc, {bool isExternal: false}) async {
-    print('====== storage::updateAccount ===========');
-    print(acc);
     if (isExternal) {
       updateContact(acc);
     } else {
@@ -386,6 +372,10 @@ class KeyringPrivateStore {
       default:
         return false;
     }
+  }
+
+  Future<bool> checkQSSeedExist(String pubKey) async {
+    return _storage.encryptedQSMnemonics.val[pubKey] != null;
   }
 
   Future<void> _migrateSeeds() async {

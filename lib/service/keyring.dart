@@ -90,8 +90,6 @@ class ServiceKeyring {
         'keyring.recover("$type", "$crypto", \'$key$derivePath\', \'$qskey$derivePath\', "$password")';
     code = code.replaceAll(RegExp(r'\t|\n|\r'), '');
     final dynamic acc = await serviceRoot.webView!.evalJavascript(code);
-    print("====== importAccount2 ======");
-    print(acc);
     if (acc == null || acc['error'] != null) {
       return acc;
     }
