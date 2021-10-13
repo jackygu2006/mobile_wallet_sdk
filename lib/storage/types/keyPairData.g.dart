@@ -11,6 +11,7 @@ KeyPairData _$KeyPairDataFromJson(Map<String, dynamic> json) => KeyPairData()
   ..address = json['address'] as String?
   ..encoded = json['encoded'] as String?
   ..pubKey = json['pubKey'] as String?
+  ..qsPubKey = json['qsPubKey'] as String? // ^^^^^^
   ..encoding = json['encoding'] as Map<String, dynamic>?
   ..meta = json['meta'] as Map<String, dynamic>?
   ..memo = json['memo'] as String?
@@ -24,6 +25,7 @@ Map<String, dynamic> _$KeyPairDataToJson(KeyPairData instance) =>
       'address': instance.address,
       'encoded': instance.encoded,
       'pubKey': instance.pubKey,
+      'qsPubKey': instance.qsPubKey,
       'encoding': instance.encoding,
       'meta': instance.meta,
       'memo': instance.memo,

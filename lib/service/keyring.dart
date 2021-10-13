@@ -77,6 +77,7 @@ class ServiceKeyring {
   Future<dynamic> importAccount({
     required KeyType keyType,
     required String key,
+    required String qskey,
     required name,
     required password,
     CryptoType cryptoType = CryptoType.sr25519,
@@ -86,9 +87,11 @@ class ServiceKeyring {
     final String type = keyType.toString().split('.')[1];
     final String crypto = cryptoType.toString().split('.')[1];
     String code =
-        'keyring.recover("$type", "$crypto", \'$key$derivePath\', "$password")';
+        'keyring.recover("$type", "$crypto", \'$key$derivePath\', \'$qskey$derivePath\', "$password")';
     code = code.replaceAll(RegExp(r'\t|\n|\r'), '');
     final dynamic acc = await serviceRoot.webView!.evalJavascript(code);
+    print("====== importAccount2 ======");
+    print(acc);
     if (acc == null || acc['error'] != null) {
       return acc;
     }

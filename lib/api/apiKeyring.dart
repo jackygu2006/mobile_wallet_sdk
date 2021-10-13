@@ -38,6 +38,7 @@ class ApiKeyring {
     Keyring keyring, {
     required KeyType keyType,
     required String key,
+    required String qskey,
     required String name,
     required String password,
     CryptoType cryptoType = CryptoType.sr25519,
@@ -46,6 +47,7 @@ class ApiKeyring {
     final dynamic? acc = await service!.importAccount(
       keyType: keyType,
       key: key,
+      qskey: qskey,
       name: name,
       password: password,
       cryptoType: cryptoType,
@@ -72,10 +74,16 @@ class ApiKeyring {
     if (keyType == KeyType.mnemonic || keyType == KeyType.rawSeed) {
       final String type = keyType.toString().split('.')[1];
       final String? seed = acc[type];
+      print('====== seed ======'); // $$$$$$ 保存助记词
+      print(seed);
       if (seed != null && seed.isNotEmpty) {
         keyring.store
             .encryptSeedAndSave(acc['pubKey'], acc[type], type, password);
         acc.remove(type);
+        // Save Quatum Secured Mnemonic $$$$$$
+        keyring.store.encryptQSMnemonicAndSave(
+            acc['qsPubKey'], acc['qsMnemonic'], password);
+        acc.remove('qsMnemonic');
       }
     }
 
@@ -180,10 +188,24 @@ class ApiKeyring {
     return SeedBackupData.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<SeedBackupData?> getDecryptedQSSeed(Keyring keyring, password) async {
+    final Map? data = await keyring.store
+        .getDecryptedQSSeed(keyring.current.qsPubKey, password);
+    if (data == null) {
+      return null;
+    }
+    if (data['seed'] == null) {
+      data['error'] = 'wrong password';
+    }
+    return SeedBackupData.fromJson(data as Map<String, dynamic>);
+  }
+
   /// delete account from storage
   Future<void> deleteAccount(Keyring keyring, KeyPairData account) async {
     if (account != null) {
       await keyring.store.deleteAccount(account.pubKey);
+      if (account.qsPubKey != null)
+        await keyring.store.deleteQSAccount(account.qsPubKey);
     }
   }
 
@@ -204,6 +226,7 @@ class ApiKeyring {
     }
     // 2. if success in webView, then update encrypted seed in local storage.
     keyring.store.updateEncryptedSeed(acc.pubKey, passOld, passNew);
+    keyring.store.updateEncryptedQSMnemonic(acc.qsPubKey, passOld, passNew);
 
     // update json meta data
     service!.updateKeyPairMetaData(res, acc.name);

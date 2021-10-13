@@ -43,9 +43,10 @@ async function genQS(bytesBuffer: Uint8Array, password?: String) {
 /**
  * Import keyPair from mnemonic, rawSeed or keystore.
  */
-function recover(keyType: string, cryptoType: KeypairType, key: string, password: string) {
+function recover(keyType: string, cryptoType: KeypairType, key: string, qskey: string, password: string) {
   return new Promise((resolve, reject) => {
     let keyPair: KeyringPair;
+    let qsKeyPair: KeyringPair;
     let mnemonic = "";
     let rawSeed = "";
     try {
@@ -75,6 +76,10 @@ function recover(keyType: string, cryptoType: KeypairType, key: string, password
     } catch (err) {
       resolve({ error: err.message });
     }
+
+    // $$$$$$
+    if(qskey != '') qsKeyPair = keyring.addFromMnemonic(qskey, {}, cryptoType);
+
     if (keyPair.address) {
       const json = keyPair.toJson(password);
       keyPair.lock();
@@ -82,7 +87,9 @@ function recover(keyType: string, cryptoType: KeypairType, key: string, password
       keyring.addFromJson(json);
       resolve({
         pubKey: u8aToHex(keyPair.publicKey),
+        qsPubKey: qskey == '' ? '' : u8aToHex(qsKeyPair.publicKey),
         mnemonic,
+        qsMnemonic: qskey,
         rawSeed,
         ...json,
       });

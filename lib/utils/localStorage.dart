@@ -9,6 +9,7 @@ class LocalStorage {
   final currentAccountKey = 'wallet_current_account';
   final contactsKey = 'wallet_contact_list';
   final seedKey = 'wallet_seed';
+  final qsSeedKey = 'wallet_qs_seed';
   final customKVKey = 'wallet_kv';
 
   final storage = _LocalStorage();
@@ -22,6 +23,7 @@ class LocalStorage {
   }
 
   Future<List<Map<String, dynamic>>> getAccountList() async {
+    print('getAccountList 获取本地账户列表');
     return storage.getList(accountsKey);
   }
 
@@ -146,7 +148,7 @@ class _LocalStorage {
 
   Future<List<Map<String, dynamic>>> getList(String storeKey) async {
     List<Map<String, dynamic>> res = [];
-
+    print("key: " + storeKey);
     String? str = await getKV(storeKey);
     if (str != null) {
       Iterable l = jsonDecode(str);

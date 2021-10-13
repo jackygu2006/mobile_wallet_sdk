@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:aes_ecb_pkcs5_flutter/aes_ecb_pkcs5_flutter.dart';
 import 'package:get_storage/get_storage.dart';
@@ -31,7 +32,10 @@ class Keyring {
   }
 
   void setCurrent(KeyPairData acc) {
+    print('====== setCurrent 设置当前账户 ======');
+    print(acc);
     store.setCurrentPubKey(acc.pubKey);
+    store.setCurrentQSPubKey(acc.qsPubKey ?? '');
   }
 
   List<KeyPairData> get keyPairs {
@@ -83,8 +87,14 @@ class KeyringPrivateStore {
   int? ss58 = 0;
 
   String? get currentPubKey => _storage.currentPubKey.val;
+  String? get currentQSPubKey => _storage.currentQSPubKey.val;
+
   void setCurrentPubKey(String? pubKey) {
     _storage.currentPubKey.val = pubKey;
+  }
+
+  void setCurrentQSPubKey(String? qsPubKey) {
+    _storage.currentQSPubKey.val = qsPubKey;
   }
 
   List get list {
@@ -120,13 +130,16 @@ class KeyringPrivateStore {
 
   /// the [GetStorage] package needs to be initiated before use.
   Future<void> init() async {
-    await GetStorage.init(sdk_storage_key);
+    print('====== keyring: init ======');
+    await GetStorage.init(sdk_storage_key); // ^^^^^^
     await _loadKeyPairsFromStorage();
   }
 
   /// load keyPairs form local storage to memory.
   Future<void> _loadKeyPairsFromStorage() async {
+    print('====== _loadKeyPairsFromStorage ======');
     final ls = await _storageOld.getAccountList();
+    print(jsonEncode(ls));
     if (ls.length > 0) {
       ls.retainWhere((e) {
         // delete all storageOld data
@@ -143,11 +156,14 @@ class KeyringPrivateStore {
         return i < 0;
       });
       final List pairs = _storage.keyPairs.val.toList();
+      print(jsonEncode(pairs));
       pairs.addAll(ls);
       _storage.keyPairs.val = pairs;
 
-      // load current account pubKey
+      // load current account pubKey ^^^^^^
       final curr = await _storageOld.getCurrentAccount();
+      print('====== keyring: curr ======');
+      print(curr);
       if (curr != null && curr.isNotEmpty) {
         setCurrentPubKey(curr);
         _storageOld.setCurrentAccount('');
@@ -171,26 +187,34 @@ class KeyringPrivateStore {
   }
 
   Future<void> addAccount(Map acc) async {
-    final pairs = _storage.keyPairs.val.toList();
+    final pairs = _storage.keyPairs.val.toList(); // ^^^^^^
     // remove duplicated account and add a new one
+    print('====== storage::addAccount ===========');
+    print(acc);
     pairs.retainWhere((e) => e['pubKey'] != acc['pubKey']);
     pairs.add(acc);
     _storage.keyPairs.val = pairs;
 
     setCurrentPubKey(acc['pubKey']);
+    setCurrentQSPubKey(acc['qsPubKey']);
   }
 
   Future<void> addContact(Map acc) async {
+    print('====== storage::addContact ===========');
+    print(acc);
     final ls = _storage.contacts.val.toList();
     ls.add(acc);
     _storage.contacts.val = ls;
 
     if (acc['observation'] ?? false) {
       setCurrentPubKey(acc['pubKey']);
+      setCurrentQSPubKey(acc['qsPubKey']);
     }
   }
 
   Future<void> updateAccount(Map acc, {bool isExternal: false}) async {
+    print('====== storage::updateAccount ===========');
+    print(acc);
     if (isExternal) {
       updateContact(acc);
     } else {
@@ -218,9 +242,17 @@ class KeyringPrivateStore {
     final mnemonics = Map.of(_storage.encryptedMnemonics.val);
     mnemonics.removeWhere((key, _) => key == pubKey);
     _storage.encryptedMnemonics.val = mnemonics;
+
     final seeds = Map.of(_storage.encryptedRawSeeds.val);
     seeds.removeWhere((key, _) => key == pubKey);
     _storage.encryptedRawSeeds.val = seeds;
+  }
+
+  Future<void> deleteQSAccount(String? pubKey) async {
+    _deleteKeyPair(pubKey);
+    final qsMnemonic = Map.of(_storage.encryptedQSMnemonics.val);
+    qsMnemonic.removeWhere((key, _) => key == pubKey);
+    _storage.encryptedQSMnemonics.val = qsMnemonic;
   }
 
   Future<void> _deleteKeyPair(String? pubKey) async {
@@ -230,10 +262,13 @@ class KeyringPrivateStore {
 
     if (pairs.length > 0) {
       setCurrentPubKey(pairs[0]['pubKey']);
+      setCurrentQSPubKey(pairs[0]['qsPubKey']);
     } else if (externals.length > 0) {
       setCurrentPubKey(externals[0]['pubKey']);
+      setCurrentQSPubKey(externals[0]['qsPubKey']);
     } else {
       setCurrentPubKey('');
+      setCurrentQSPubKey('');
     }
   }
 
@@ -248,10 +283,11 @@ class KeyringPrivateStore {
     final String key = Encrypt.passwordToEncryptKey(password);
     final String encrypted = await FlutterAesEcbPkcs5.encryptString(seed, key);
 
-    // read old data from storage-old
+    // read old seed from storage-old
     final Map stored = await (_storageOld.getSeeds(seedType)
         as FutureOr<Map<dynamic, dynamic>>);
     stored[pubKey] = encrypted;
+
     // and save to new storage
     if (seedType == KeyType.mnemonic.toString().split('.')[1]) {
       final mnemonics = Map.from(_storage.encryptedMnemonics.val);
@@ -266,10 +302,37 @@ class KeyringPrivateStore {
     }
   }
 
+  // $$$$$$
+  Future<void> encryptQSMnemonicAndSave(
+      String? pubKey, qsMnemonic, password) async {
+    final String key = Encrypt.passwordToEncryptKey(password);
+    final String qsEncrypted =
+        await FlutterAesEcbPkcs5.encryptString(qsMnemonic, key);
+
+    // Read old qsMnemonic from storage-old
+    final Map qsStored = await (_storageOld.getSeeds('qsmnemonic')
+        as FutureOr<Map<dynamic, dynamic>>);
+    qsStored[pubKey] = qsEncrypted;
+
+    // save qsMnemonic to new storage
+    qsMnemonic = Map.from(_storage.encryptedQSMnemonics.val);
+    qsMnemonic.addAll(qsStored);
+    _storage.encryptedQSMnemonics.val = qsMnemonic;
+  }
+
+  // $$$$$$
   Future<void> updateEncryptedSeed(String? pubKey, passOld, passNew) async {
     final seed = await (getDecryptedSeed(pubKey, passOld)
         as FutureOr<Map<String, dynamic>>);
     encryptSeedAndSave(pubKey, seed['seed'], seed['type'], passNew);
+  }
+
+  // $$$$$$
+  Future<void> updateEncryptedQSMnemonic(
+      String? qsPubKey, passOld, passNew) async {
+    final seed = await (getDecryptedQSSeed(qsPubKey, passOld)
+        as FutureOr<Map<dynamic, dynamic>>);
+    encryptQSMnemonicAndSave(qsPubKey, seed['seed'], passNew);
   }
 
   Future<Map<String, dynamic>?> getDecryptedSeed(
@@ -298,6 +361,22 @@ class KeyringPrivateStore {
     return null;
   }
 
+  Future<Map<String, dynamic>?> getDecryptedQSSeed(
+      String? qsPubKey, password) async {
+    final key = Encrypt.passwordToEncryptKey(password);
+    final mnemonic = _storage.encryptedQSMnemonics.val[qsPubKey];
+    if (mnemonic != null) {
+      final res = {'type': 'qsMnemonic'}; // ^^^^^^
+      try {
+        res['seed'] = await FlutterAesEcbPkcs5.decryptString(mnemonic, key);
+      } catch (err) {
+        print(err);
+      }
+      return res;
+    }
+    return null;
+  }
+
   Future<bool> checkSeedExist(KeyType keyType, String pubKey) async {
     switch (keyType) {
       case KeyType.mnemonic:
@@ -313,6 +392,7 @@ class KeyringPrivateStore {
     final res = await Future.wait([
       _storageOld.getSeeds('mnemonic'),
       _storageOld.getSeeds('rawSeed'),
+      _storageOld.getSeeds('qsmnemonic'),
     ]);
     if (res[0]!.keys.length > 0) {
       final mnemonics = Map.of(_storage.encryptedMnemonics.val);
@@ -325,6 +405,13 @@ class KeyringPrivateStore {
       seeds.addAll(res[1]!);
       _storage.encryptedRawSeeds.val = seeds;
       _storageOld.setSeeds('rawSeed', {});
+    }
+
+    if (res[2]!.keys.length > 0) {
+      final qsMnemonic = Map.of(_storage.encryptedQSMnemonics.val);
+      qsMnemonic.addAll(res[2]!);
+      _storage.encryptedQSMnemonics.val = qsMnemonic;
+      _storageOld.setSeeds('qsmnemonic', {});
     }
   }
 }

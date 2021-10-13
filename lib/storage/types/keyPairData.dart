@@ -14,6 +14,7 @@ abstract class _KeyPairData {
   String? address;
   String? encoded;
   String? pubKey;
+  String? qsPubKey;
 
   Map<String, dynamic>? encoding = Map<String, dynamic>();
   Map<String, dynamic>? meta = Map<String, dynamic>();
