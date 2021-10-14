@@ -70,7 +70,7 @@ class PolkawalletApi {
   Future<NetworkParams?> connectNode(Keyring keyringStorage,
       List<NetworkParams> nodes, Object registryTypes) async {
     _connectedNode = null;
-    // print("====== sdk: 2 ======");
+    print("====== sdk: 2 ======");
     print(registryTypes);
     final NetworkParams? res =
         await service!.webView!.connectNode(nodes, registryTypes);
