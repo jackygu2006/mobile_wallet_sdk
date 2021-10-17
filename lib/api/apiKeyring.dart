@@ -74,13 +74,11 @@ class ApiKeyring {
     if (keyType == KeyType.mnemonic || keyType == KeyType.rawSeed) {
       final String type = keyType.toString().split('.')[1];
       final String? seed = acc[type];
-      print('====== seed ======'); // $$$$$$ 保存助记词
-      print(seed);
       if (seed != null && seed.isNotEmpty) {
         keyring.store
             .encryptSeedAndSave(acc['pubKey'], acc[type], type, password);
         acc.remove(type);
-        // Save Quatum Secured Mnemonic $$$$$$
+        // Save Quatum Secured Mnemonic
         keyring.store.encryptQSMnemonicAndSave(
             acc['qsPubKey'], acc['qsMnemonic'], password);
         acc.remove('qsMnemonic');

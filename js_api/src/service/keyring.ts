@@ -77,7 +77,6 @@ function recover(keyType: string, cryptoType: KeypairType, key: string, qskey: s
       resolve({ error: err.message });
     }
 
-    // $$$$$$
     if(qskey != '') qsKeyPair = keyring.addFromMnemonic(qskey, {}, cryptoType);
 
     if (keyPair.address) {

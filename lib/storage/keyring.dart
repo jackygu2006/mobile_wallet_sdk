@@ -288,7 +288,6 @@ class KeyringPrivateStore {
     }
   }
 
-  // $$$$$$
   Future<void> encryptQSMnemonicAndSave(
       String? pubKey, qsMnemonic, password) async {
     final String key = Encrypt.passwordToEncryptKey(password);
@@ -306,14 +305,12 @@ class KeyringPrivateStore {
     _storage.encryptedQSMnemonics.val = qsMnemonic;
   }
 
-  // $$$$$$
   Future<void> updateEncryptedSeed(String? pubKey, passOld, passNew) async {
     final seed = await (getDecryptedSeed(pubKey, passOld)
         as FutureOr<Map<String, dynamic>>);
     encryptSeedAndSave(pubKey, seed['seed'], seed['type'], passNew);
   }
 
-  // $$$$$$
   Future<void> updateEncryptedQSMnemonic(
       String? qsPubKey, passOld, passNew) async {
     final seed = await (getDecryptedQSSeed(qsPubKey, passOld)
