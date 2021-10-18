@@ -25,7 +25,6 @@ async function connect(nodes: string[], registryTypes: Object) {
   console.log("========= connected api =========");
   console.log(nodes);
   console.log("registryTypes: " + JSON.stringify(registryTypes));
-  // 这里需要将xx的连接和dot的连接区分开
   return new Promise(async (resolve, reject) => {
     const wsProvider = new WsProvider(nodes);
     try {

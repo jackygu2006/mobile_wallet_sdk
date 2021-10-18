@@ -4,6 +4,8 @@ import { u8aConcat, u8aToHex, BN_ZERO, BN_MILLION, BN_ONE, formatBalance, isFunc
 import BN from "bn.js";
 
 import { getInflationParams, Inflation } from './inflation';
+import { getStashInfo } from './account';
+
 import { 
   DeriveSessionInfo,
   DeriveSessionProgress,
@@ -14,9 +16,10 @@ import {
 } from '@polkadot/api-derive/types';
 
 import type { Balance } from '@polkadot/types/interfaces/runtime';
-// import { ValidatorPrefs } from "@polkadot/custom-interfaces/interfaces/types";
+import { ValidatorPrefs } from "@polkadot/types/interfaces";
 import { Nominations } from "@polkadot/types/interfaces";
 import { AnyTuple } from "@polkadot/types/types";
+import { PalletStakingValidatorPrefs } from "@polkadot/types/lookup";
 
 const divisor = new BN("1".padEnd(12 + 1, "0"));
 
@@ -602,9 +605,9 @@ function _toIdString(id: any) {
 }
 
 function _extractStakerState(
-  accountId,
-  stashId,
-  allStashes,
+  accountId: string,
+  stashId: string,
+  allStashes: string | any[],
   [
     isOwnStash,
     {
@@ -618,7 +621,7 @@ function _extractStakerState(
       validatorPrefs,
     },
     validateInfo,
-  ]
+  ]: [boolean, DeriveStakingAccount, PalletStakingValidatorPrefs]
 ) {
   console.log("====== a ======" + rewardDestination);
   const isStashNominating = !!nominators?.length;
@@ -632,18 +635,10 @@ function _extractStakerState(
   console.log("====== b ====== " + JSON.stringify(rewardDestination)); // {staked: null}
   console.log("====== c ====== " + accountId + ", " + controllerId);
 
-  let destinationId, destination; // 测试用 $$$$$$
-  try {
-    destinationId = rewardDestination?.toNumber() || 0;
-    destination = rewardDestination?.toString().toLowerCase();
-  } catch (err) {
-    destinationId = 0;
-    destination = "staked";
-  }
   return {
     controllerId,
-    destination,
-    destinationId,
+    destination: rewardDestination?.toString().toLowerCase(),
+    destinationId: rewardDestination?.toNumber() || 0,
     exposure,
     hexSessionIdNext: u8aToHex(nextConcat, 48),
     hexSessionIdQueue: u8aToHex(
@@ -805,20 +800,24 @@ async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
   // $$$$$$ 问题在此
   console.log("====== getOwnStashInfo Start ======");
-  const account: DeriveStakingAccount = await api.derive.staking.account(stashId);// // 原因：api-derive变更了，不支持muli方法，需要问Balto要
-  const validators = await api.query.staking.validators(stashId);
+  // const account: DeriveStakingAccount = await api.derive.staking.account(stashId);
+  const account: DeriveStakingAccount = await getStashInfo(api, stashId);
+  console.log("====== getOwnStashInfo Start 1 ======");
+  console.log(JSON.stringify(account));  
+  const validators: PalletStakingValidatorPrefs = await api.query.staking.validators(stashId);
+  console.log("====== getOwnStashInfo Start 2 ======");
+  console.log(JSON.stringify(validators));
   const allStashes: String[] = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
+  console.log("====== getOwnStashInfo Start 3 ======");
+  console.log(JSON.stringify(allStashes)); 
   const progress: DeriveSessionProgress = await api.derive.session.progress();
-  // const [account, validators, allStashes, progress] = await Promise.all([
-  //   api.derive.staking.account(stashId),
+  console.log("====== getOwnStashInfo Start 4 ======");
+  console.log(JSON.stringify(progress));
+  // const [validators, allStashes, progress] = await Promise.all([
   //   api.query.staking.validators(stashId),
   //   api.derive.staking.stashes().then((res) => res.map((i) => i.toString())),
   //   api.derive.session.progress(),
   // ]);
-  console.log(JSON.stringify(account));
-  console.log(JSON.stringify(validators));
-  console.log(JSON.stringify(allStashes)); 
-  console.log(JSON.stringify(progress));
   console.log("====== getOwnStashInfo End ======");
 
   const stashInfo = _extractStakerState(accountId, stashId, allStashes, [
