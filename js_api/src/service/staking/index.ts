@@ -560,7 +560,6 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
  * Query all validators info.
  */
 async function querySortedTargets(api: ApiPromise) {
-  console.log("====== querySortedTargets Start ======");
   const historyDepth = await api.query.staking.historyDepth();
   const totalIssuance: Balance = await api.query.balances.totalIssuance();
   const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
@@ -573,7 +572,6 @@ async function querySortedTargets(api: ApiPromise) {
   } catch (err) {
     console.log("Not support api.query.staking.minNominatorBond()");
   }
-  console.log("====== querySortedTargets End ======");
 
   const partial = totalIssuance && electedInfo && waitingInfo && info
   ? _extractTargetsInfo(api, electedInfo, waitingInfo, totalIssuance, _transfromEra(info), historyDepth)
@@ -623,7 +621,6 @@ function _extractStakerState(
     validateInfo,
   ]: [boolean, DeriveStakingAccount, PalletStakingValidatorPrefs]
 ) {
-  console.log("====== a ======" + rewardDestination);
   const isStashNominating = !!nominators?.length;
   const isStashValidating =
     !(Array.isArray(validateInfo)
@@ -632,8 +629,6 @@ function _extractStakerState(
   const nextConcat = u8aConcat(...nextSessionIds.map((id: any) => id.toU8a()));
   const currConcat = u8aConcat(...sessionIds.map((id: any) => id.toU8a()));
   const controllerId = _toIdString(_controllerId);
-  console.log("====== b ====== " + JSON.stringify(rewardDestination)); // {staked: null}
-  console.log("====== c ====== " + accountId + ", " + controllerId);
 
   return {
     controllerId,
@@ -798,27 +793,17 @@ function _extractUnbondings(stakingInfo: any, progress: any) {
 
 async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
-  // $$$$$$ 问题在此
-  console.log("====== getOwnStashInfo Start ======");
+  // $$$$$$
   // const account: DeriveStakingAccount = await api.derive.staking.account(stashId);
   const account: DeriveStakingAccount = await getStashInfo(api, stashId);
-  console.log("====== getOwnStashInfo Start 1 ======");
-  console.log(JSON.stringify(account));  
   const validators: PalletStakingValidatorPrefs = await api.query.staking.validators(stashId);
-  console.log("====== getOwnStashInfo Start 2 ======");
-  console.log(JSON.stringify(validators));
   const allStashes: String[] = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
-  console.log("====== getOwnStashInfo Start 3 ======");
-  console.log(JSON.stringify(allStashes)); 
   const progress: DeriveSessionProgress = await api.derive.session.progress();
-  console.log("====== getOwnStashInfo Start 4 ======");
-  console.log(JSON.stringify(progress));
   // const [validators, allStashes, progress] = await Promise.all([
   //   api.query.staking.validators(stashId),
   //   api.derive.staking.stashes().then((res) => res.map((i) => i.toString())),
   //   api.derive.session.progress(),
   // ]);
-  console.log("====== getOwnStashInfo End ======");
 
   const stashInfo = _extractStakerState(accountId, stashId, allStashes, [
     isOwnStash,

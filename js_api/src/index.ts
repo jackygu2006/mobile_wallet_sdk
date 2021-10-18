@@ -22,9 +22,8 @@ send("log", "main js loaded");
  * @param {string} nodeEndpoint
  */
 async function connect(nodes: string[], registryTypes: Object) {
-  console.log("========= connected api =========");
-  console.log(nodes);
-  console.log("registryTypes: " + JSON.stringify(registryTypes));
+  // console.log("registryTypes: ");
+  // console.log(JSON.stringify(registryTypes));
   return new Promise(async (resolve, reject) => {
     const wsProvider = new WsProvider(nodes);
     try {
