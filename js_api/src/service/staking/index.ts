@@ -2,7 +2,7 @@ import { ApiPromise } from "@polkadot/api";
 import type { Option, StorageKey } from '@polkadot/types';
 import { u8aConcat, u8aToHex, BN_ZERO, BN_MILLION, BN_ONE, formatBalance, isFunction, arrayFlatten } from '@polkadot/util';
 import BN from "bn.js";
-
+import { Buffer } from 'buffer';
 import { getInflationParams, Inflation } from './inflation';
 import { getStashInfo } from './account';
 
@@ -16,7 +16,7 @@ import {
 } from '@polkadot/api-derive/types';
 
 import type { Balance } from '@polkadot/types/interfaces/runtime';
-import { Nominations } from "@polkadot/types/interfaces";
+import { Nominations, Hash } from "@polkadot/types/interfaces";
 import { AnyTuple } from "@polkadot/types/types";
 import { PalletStakingValidatorPrefs } from "@polkadot/types/lookup";
 
@@ -344,6 +344,10 @@ interface LastEra {
   lastEra: BN;
   sessionLength: BN;
 }
+
+const toByteArray = (nodeRoot: Hash, extraByte: Uint8Array) => Buffer.concat([nodeRoot.toU8a(true), extraByte])
+const toBase64 = (cmixRoot: Buffer) => cmixRoot.toString('base64');
+
 function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | DeriveStakingWaiting, { activeEra, eraLength, lastEra, sessionLength }: LastEra, historyDepth?: BN): [any[], string[]] {
   const nominators: Record<string, boolean> = {};
   const emptyExposure = api.createType('Exposure');
@@ -382,7 +386,14 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       lastPayout = lastEra.sub(lastPayout).mul(eraLength);
     }
 
-    
+    const cmixRoot: Hash = validatorPrefs.cmix_root;
+    let cmixId = '';
+    if(cmixRoot) {
+      let extraByte: Uint8Array = new Uint8Array(1);
+      extraByte[0] = parseInt('02'.substr(0, 2), 16);
+      cmixId = toBase64(toByteArray(cmixRoot, extraByte));  
+    }
+
     return {
       accountId,
       bondOther: bondTotal.sub(bondOwn),
@@ -390,7 +401,8 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       bondShare: 0,
       bondTotal,
       commissionPer: validatorPrefs.commission.unwrap().toNumber() / 10_000_000,
-      cmixRoot: validatorPrefs.cmix_root != undefined ? validatorPrefs.cmix_root : '',
+      cmixRoot,
+      cmixId,
       exposure,
       isActive: !skipRewards,
       isBlocking: !!(validatorPrefs.blocked && validatorPrefs.blocked.isTrue),
@@ -558,7 +570,7 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
   sessionLength
 });
 /**
- * Query all validators info.
+ * Query all validators info. $$$$$$
  */
 async function querySortedTargets(api: ApiPromise) {
   const historyDepth = await api.query.staking.historyDepth();
@@ -794,17 +806,10 @@ function _extractUnbondings(stakingInfo: any, progress: any) {
 
 async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
-  // $$$$$$ 重要更改
-  // const account: DeriveStakingAccount = await api.derive.staking.account(stashId);
   const account: DeriveStakingAccount = await getStashInfo(api, stashId);
   const validators: PalletStakingValidatorPrefs = await api.query.staking.validators(stashId);
   const allStashes: String[] = await api.derive.staking.stashes().then((res) => res.map((i) => i.toString()));
   const progress: DeriveSessionProgress = await api.derive.session.progress();
-  // const [validators, allStashes, progress] = await Promise.all([
-  //   api.query.staking.validators(stashId),
-  //   api.derive.staking.stashes().then((res) => res.map((i) => i.toString())),
-  //   api.derive.session.progress(),
-  // ]);
 
   const stashInfo = _extractStakerState(accountId, stashId, allStashes, [
     isOwnStash,
