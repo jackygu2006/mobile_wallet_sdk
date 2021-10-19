@@ -16,7 +16,6 @@ import {
 } from '@polkadot/api-derive/types';
 
 import type { Balance } from '@polkadot/types/interfaces/runtime';
-import { ValidatorPrefs } from "@polkadot/types/interfaces";
 import { Nominations } from "@polkadot/types/interfaces";
 import { AnyTuple } from "@polkadot/types/types";
 import { PalletStakingValidatorPrefs } from "@polkadot/types/lookup";
@@ -383,6 +382,7 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       lastPayout = lastEra.sub(lastPayout).mul(eraLength);
     }
 
+    
     return {
       accountId,
       bondOther: bondTotal.sub(bondOwn),
@@ -390,7 +390,7 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       bondShare: 0,
       bondTotal,
       commissionPer: validatorPrefs.commission.unwrap().toNumber() / 10_000_000,
-      cmixRoot: validatorPrefs.cmix_root,
+      cmixRoot: validatorPrefs.cmix_root != undefined ? validatorPrefs.cmix_root : '',
       exposure,
       isActive: !skipRewards,
       isBlocking: !!(validatorPrefs.blocked && validatorPrefs.blocked.isTrue),
@@ -563,7 +563,6 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
 async function querySortedTargets(api: ApiPromise) {
   const historyDepth = await api.query.staking.historyDepth();
   const totalIssuance: Balance = await api.query.balances.totalIssuance();
-  // ######
   const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
   const waitingInfo:DeriveStakingWaiting = await api.derive.staking.waitingInfo({withPrefs: true});
   const info: DeriveSessionInfo = await api.derive.session.info();
@@ -795,7 +794,7 @@ function _extractUnbondings(stakingInfo: any, progress: any) {
 
 async function getOwnStashInfo(api: ApiPromise, accountId: string) {
   const [stashId, isOwnStash] = await _getOwnStash(api, accountId);
-  // $$$$$$
+  // $$$$$$ 重要更改
   // const account: DeriveStakingAccount = await api.derive.staking.account(stashId);
   const account: DeriveStakingAccount = await getStashInfo(api, stashId);
   const validators: PalletStakingValidatorPrefs = await api.query.staking.validators(stashId);
