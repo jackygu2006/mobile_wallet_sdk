@@ -30,7 +30,7 @@ async function gen() {
 }
 
 /**
- * Generate Quantum secured mnemonic ######
+ * Generate Quantum secured mnemonic
  */
 async function genQS(bytesBuffer: Uint8Array, password?: String) {
   const generator = await fetchSleeveGenerator(Uint8Array.from(bytesBuffer).buffer);

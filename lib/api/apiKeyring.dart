@@ -25,7 +25,7 @@ class ApiKeyring {
     return mnemonic;
   }
 
-  /// Generate a set of new Quantum Secured mnemonic ######
+  /// Generate a set of new Quantum Secured mnemonic
   Future<QSMnemonic?> generateQSMnemonic(String? password) async {
     return await service!.generateQSMnemonic(password);
   }

@@ -43,7 +43,6 @@ const post_headers = {"Content-type": "application/json", "Accept": "*/*"};
 
 /// Querying txs from [subscan.io](https://subscan.io).
 class SubScanApi {
-  // ######
   final String moduleBalances = 'Balances';
   final String moduleStaking = 'Staking';
   final String moduleDemocracy = 'Democracy';

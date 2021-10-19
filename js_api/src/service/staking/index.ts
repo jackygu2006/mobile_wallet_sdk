@@ -390,6 +390,7 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       bondShare: 0,
       bondTotal,
       commissionPer: validatorPrefs.commission.unwrap().toNumber() / 10_000_000,
+      cmixRoot: validatorPrefs.cmix_root,
       exposure,
       isActive: !skipRewards,
       isBlocking: !!(validatorPrefs.blocked && validatorPrefs.blocked.isTrue),
@@ -410,7 +411,7 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       rankReward: 0,
       skipRewards,
       stakedReturn: 0,
-      stakedReturnCmp: 0
+      stakedReturnCmp: 0,
     };
   });
 
@@ -562,6 +563,7 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
 async function querySortedTargets(api: ApiPromise) {
   const historyDepth = await api.query.staking.historyDepth();
   const totalIssuance: Balance = await api.query.balances.totalIssuance();
+  // ######
   const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
   const waitingInfo:DeriveStakingWaiting = await api.derive.staking.waitingInfo({withPrefs: true});
   const info: DeriveSessionInfo = await api.derive.session.info();
