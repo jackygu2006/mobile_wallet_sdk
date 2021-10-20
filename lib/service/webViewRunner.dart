@@ -166,8 +166,6 @@ class WebViewRunner {
 
   Future<NetworkParams?> connectNode(
       List<NetworkParams> nodes, Object registryTypes) async {
-    print("====== sdk: 3 connectNode ======");
-    print(registryTypes);
     final dynamic res = await evalJavascript(
         'settings.connect(${jsonEncode(nodes.map((e) => e.endpoint).toList())}, ${jsonEncode(registryTypes)})');
     print(res);

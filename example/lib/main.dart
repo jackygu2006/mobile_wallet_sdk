@@ -101,7 +101,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _connecting = true;
     });
-    print("====== sdk: 4 _connectNode ======");
     final node = NetworkParams();
     node.name = 'Kusama';
     node.endpoint = 'wss://kusama.api.onfinality.io/public-ws/';

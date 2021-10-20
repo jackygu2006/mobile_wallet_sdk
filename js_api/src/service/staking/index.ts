@@ -243,7 +243,6 @@ async function loadAccountRewardsData(api: ApiPromise, stashId: string, maxEras:
   // @ts-ignore
   const allEras = await api.derive.staking?.erasHistoric();
   const filteredEras = allEras.slice(-1 * maxEras);
-
   const stakerRewards = await api.derive.staking.stakerRewardsMultiEras(
     [stashId],
     filteredEras
@@ -301,7 +300,6 @@ async function getAccountRewardsEraOptions(api: ApiPromise): Promise<EraSelectio
       unit: "eras",
       value: historyDepth.toNumber(),
     });
-
     return eraSelection;
   }
   return [{ text: 0, unit: "", value: 0 }];
