@@ -346,7 +346,19 @@ interface LastEra {
 const toByteArray = (nodeRoot: Hash, extraByte: Uint8Array) => Buffer.concat([nodeRoot.toU8a(true), extraByte])
 const toBase64 = (cmixRoot: Buffer) => cmixRoot.toString('base64');
 
-function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | DeriveStakingWaiting, { activeEra, eraLength, lastEra, sessionLength }: LastEra, historyDepth?: BN): [any[], string[]] {
+function _extractSingleTarget (
+  api: ApiPromise, 
+  derive: DeriveStakingElected | DeriveStakingWaiting, 
+  { 
+    activeEra, 
+    eraLength, 
+    lastEra, 
+    sessionLength 
+  }: LastEra, 
+  historyDepth?: BN, 
+  rewordPoints?: any,
+  currentRewardPoints?: any, 
+  ): [any[], string[]] {
   const nominators: Record<string, boolean> = {};
   const emptyExposure = api.createType('Exposure');
   const earliestEra = historyDepth && lastEra.sub(historyDepth).iadd(BN_ONE);
@@ -392,6 +404,8 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       cmixId = toBase64(toByteArray(cmixRoot, extraByte));  
     }
 
+    // console.log('==>', accountId.toString(), currentRewardPoints !== undefined && currentRewardPoints !== null ? JSON.parse(currentRewardPoints.individual)[accountId.toString()] : 0);
+
     return {
       accountId,
       bondOther: bondTotal.sub(bondOwn),
@@ -401,6 +415,8 @@ function _extractSingleTarget (api: ApiPromise, derive: DeriveStakingElected | D
       commissionPer: validatorPrefs.commission.unwrap().toNumber() / 10_000_000,
       cmixRoot,
       cmixId,
+      points: rewordPoints !== undefined && rewordPoints !== null ? JSON.parse(rewordPoints.individual)[accountId.toString()] : 0,
+      currentPoints: currentRewardPoints !== undefined && currentRewardPoints !== null ? JSON.parse(currentRewardPoints.individual)[accountId.toString()] : 0,
       exposure,
       isActive: !skipRewards,
       isBlocking: !!(validatorPrefs.blocked && validatorPrefs.blocked.isTrue),
@@ -506,10 +522,24 @@ interface SortedTargets {
   validators?: any[];
   validatorIds?: string[];
   waitingIds?: string[];
+  avgPoints?: number;
+  currentEra?: number;
+
 }
-function _extractTargetsInfo(api: ApiPromise, electedDerive: DeriveStakingElected, waitingDerive: DeriveStakingWaiting, totalIssuance: BN, lastEraInfo: LastEra, historyDepth?: BN): Partial<SortedTargets> {
-  const [elected, nominators] = _extractSingleTarget(api, electedDerive, lastEraInfo, historyDepth);
-  const [waiting] = _extractSingleTarget(api, waitingDerive, lastEraInfo);
+
+function _extractTargetsInfo(
+  api: ApiPromise, 
+  electedDerive: DeriveStakingElected, 
+  waitingDerive: DeriveStakingWaiting, 
+  totalIssuance: BN, 
+  lastEraInfo: LastEra, 
+  historyDepth?: BN, 
+  rewardPoints?: any, 
+  currentRewardPoints?: any,
+  currentEra?: number, 
+  ): Partial<SortedTargets> {
+  const [elected, nominators] = _extractSingleTarget(api, electedDerive, lastEraInfo, historyDepth, rewardPoints, currentRewardPoints);
+  const [waiting] = _extractSingleTarget(api, waitingDerive, lastEraInfo, null, null);
   const activeTotals = elected
     .filter(({ isActive }) => isActive)
     .map(({ bondTotal }) => bondTotal)
@@ -547,6 +577,8 @@ function _extractTargetsInfo(api: ApiPromise, electedDerive: DeriveStakingElecte
   const waitingIds = waiting.map(({ key }) => key);
   const validatorIds = arrayFlatten([electedIds, waitingIds]);
 
+  const avgPoints = currentRewardPoints !== undefined && currentRewardPoints !== null ? parseInt(currentRewardPoints.total) / validators.length : 0;
+
   return {
     avgStaked,
     inflation,
@@ -558,7 +590,9 @@ function _extractTargetsInfo(api: ApiPromise, electedDerive: DeriveStakingElecte
     totalStaked,
     validatorIds,
     validators,
-    waitingIds
+    waitingIds,
+    avgPoints,
+    currentEra,
   };
 }
 const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInfo): LastEra => ({
@@ -584,8 +618,14 @@ async function querySortedTargets(api: ApiPromise) {
     console.log("Not support api.query.staking.minNominatorBond()");
   }
 
+  // add validator's point into electedInfo
+  const currentEra = await api.query.staking.currentEra();
+  const era = parseInt(currentEra.toString());
+  const rewardPoints = await api.query.staking.erasRewardPoints(era - 2);
+  const currentRewardPoints = await api.query.staking.erasRewardPoints(era - 1);
+
   const partial = totalIssuance && electedInfo && waitingInfo && info
-  ? _extractTargetsInfo(api, electedInfo, waitingInfo, totalIssuance, _transfromEra(info), historyDepth)
+  ? _extractTargetsInfo(api, electedInfo, waitingInfo, totalIssuance, _transfromEra(info), historyDepth, rewardPoints, currentRewardPoints, era)
   : {};
   return { inflation: { inflation: 0, stakedReturn: 0 }, medianComm: 0, ...partial, minNominatorBond: minNominatorBond };
 }

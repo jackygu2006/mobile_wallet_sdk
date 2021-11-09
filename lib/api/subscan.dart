@@ -187,11 +187,9 @@ class SubScanApi {
     }
     String body = jsonEncode(params);
     print("====== fetchTxs $url 开始 ======");
-    print(body);
     Response res =
         await post(Uri.parse(url), headers: post_headers, body: body);
     print("====== fetchTxs $url 结束 ======");
-    print(res.body);
     if (res.body != null) {
       final obj = await compute(jsonDecode, res.body);
       if (para.sendPort != null) {
