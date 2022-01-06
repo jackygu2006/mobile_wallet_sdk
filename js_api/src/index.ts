@@ -27,21 +27,14 @@ async function connect(nodes: string[], registryTypes: Object) {
   return new Promise(async (resolve, reject) => {
     const wsProvider = new WsProvider(nodes);
     try {
-      let res: ApiPromise;
-      if(registryTypes === {}) {
-        res = await ApiPromise.create({
-          provider: wsProvider,
-        });
-      } else {
-        res = await ApiPromise.create({
-          provider: wsProvider,
-          types: Object(registryTypes)
-        });
-      }
+      const res: ApiPromise = await ApiPromise.create({
+        provider: wsProvider,
+      });
       (<any>window).api = res;
-      const url = nodes[(<any>res)._options.provider.__private_9_endpointIndex];
-      send("log", `${url} wss connected success`);
-      resolve(url);
+      // console.log('connection result', JSON.stringify((<any>res)));
+      // const url = nodes[(<any>res)._options.provider.__private_9_endpointIndex];
+      send("log", `${nodes[0]} wss connected success`);
+      resolve(nodes[0]);
     } catch (err) {
       send("log", `connect failed`);
       wsProvider.disconnect();

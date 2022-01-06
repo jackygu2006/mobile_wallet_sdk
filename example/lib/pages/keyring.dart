@@ -344,7 +344,13 @@ class _KeyringPageState extends State<KeyringPage> {
                         color:
                             _ss58 == 42 ? Theme.of(context).primaryColor : null,
                         onPressed: () => _setSS58(42),
-                      )
+                      ),
+                      RaisedButton(
+                        child: Text('Substrate: 55'),
+                        color:
+                            _ss58 == 55 ? Theme.of(context).primaryColor : null,
+                        onPressed: () => _setSS58(55),
+                      ),
                     ],
                   )
                 ],

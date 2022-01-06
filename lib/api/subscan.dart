@@ -56,7 +56,7 @@ class SubScanApi {
       network = 'acala-testnet';
     }
     return network == 'xxnetwork' || network == 'protonet'
-        ? 'http://101.32.192.132:3030/api/scan'
+        ? 'https://tool.xxnetwork.asia:3040/api/scan'
         : 'https://$network.api.subscan.io/api/scan';
   }
 

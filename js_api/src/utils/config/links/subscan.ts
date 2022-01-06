@@ -9,7 +9,7 @@ export default {
   },
   create: (chain: string, path: string, data: any) =>
     chain === 'xxnetwork' || chain === 'protonet' 
-      ? `http://101.32.192.132:3030/${path}/${data.toString()}` 
+      ? `https://tool.xxnetwork.asia:3040/${path}/${data.toString()}` 
       : `https://${chain}.subscan.io/${path}/${data.toString()}`,
   isActive: true,
   paths: {

@@ -18,7 +18,7 @@ import {
 import type { Balance } from '@polkadot/types/interfaces/runtime';
 import { Nominations, Hash } from "@polkadot/types/interfaces";
 import { AnyTuple } from "@polkadot/types/types";
-import { PalletStakingValidatorPrefs } from "@polkadot/types/lookup";
+import { PalletStakingValidatorPrefs, PalletStakingStakingLedger } from "@polkadot/types/lookup";
 
 const divisor = new BN("1".padEnd(12 + 1, "0"));
 
@@ -343,7 +343,7 @@ interface LastEra {
   sessionLength: BN;
 }
 
-const toByteArray = (nodeRoot: Hash, extraByte: Uint8Array) => Buffer.concat([nodeRoot.toU8a(true), extraByte])
+const toByteArray = (nodeId: Hash) => Buffer.concat([nodeId.toU8a(true), new Uint8Array([2])]);
 const toBase64 = (cmixRoot: Buffer) => cmixRoot.toString('base64');
 
 function _extractSingleTarget (
@@ -358,6 +358,7 @@ function _extractSingleTarget (
   historyDepth?: BN, 
   rewordPoints?: any,
   currentRewardPoints?: any, 
+  validatorsLedgers?: PalletStakingStakingLedger[],
   ): [any[], string[]] {
   const nominators: Record<string, boolean> = {};
   const emptyExposure = api.createType('Exposure');
@@ -396,15 +397,15 @@ function _extractSingleTarget (
       lastPayout = lastEra.sub(lastPayout).mul(eraLength);
     }
 
-    const cmixRoot: Hash = validatorPrefs.cmix_root;
-    let cmixId = '';
-    if(cmixRoot) {
-      let extraByte: Uint8Array = new Uint8Array(1);
-      extraByte[0] = parseInt('02'.substr(0, 2), 16);
-      cmixId = toBase64(toByteArray(cmixRoot, extraByte));  
+    let cmixRoot:Hash;
+    let cmixId:string = '';
+    const ledgers: PalletStakingStakingLedger[] = validatorsLedgers.length === 0 ? [] : validatorsLedgers.filter((ledger: PalletStakingStakingLedger) => ledger.stash.toString() === key);
+    if(ledgers.length > 0) {
+      const ledger: PalletStakingStakingLedger = ledgers[0];
+      cmixRoot = ledger.cmixId;
+      cmixId = cmixRoot ? toBase64(toByteArray(cmixRoot)) : '';
+      // console.log("cmix===", ledger.stash.toString(), cmixRoot.toString(), cmixId);
     }
-
-    // console.log('==>', accountId.toString(), currentRewardPoints !== undefined && currentRewardPoints !== null ? JSON.parse(currentRewardPoints.individual)[accountId.toString()] : 0);
 
     return {
       accountId,
@@ -413,7 +414,7 @@ function _extractSingleTarget (
       bondShare: 0,
       bondTotal,
       commissionPer: validatorPrefs.commission.unwrap().toNumber() / 10_000_000,
-      cmixRoot,
+      cmixRoot: cmixRoot === undefined ? '' : cmixRoot.toString(),
       cmixId,
       points: rewordPoints !== undefined && rewordPoints !== null ? JSON.parse(rewordPoints.individual)[accountId.toString()] : 0,
       currentPoints: currentRewardPoints !== undefined && currentRewardPoints !== null ? JSON.parse(currentRewardPoints.individual)[accountId.toString()] : 0,
@@ -536,18 +537,25 @@ function _extractTargetsInfo(
   historyDepth?: BN, 
   rewardPoints?: any, 
   currentRewardPoints?: any,
+  validatorsLedgers?: PalletStakingStakingLedger[],
   currentEra?: number, 
   ): Partial<SortedTargets> {
-  const [elected, nominators] = _extractSingleTarget(api, electedDerive, lastEraInfo, historyDepth, rewardPoints, currentRewardPoints);
-  const [waiting] = _extractSingleTarget(api, waitingDerive, lastEraInfo, null, null);
+  const [elected, nominators] = _extractSingleTarget(api, electedDerive, lastEraInfo, historyDepth, rewardPoints, currentRewardPoints, validatorsLedgers);
+  const [waiting] = _extractSingleTarget(api, waitingDerive, lastEraInfo, null, null, null, validatorsLedgers);
+  
+  console.log('guqianfeng activeTotals');
+  // Sort all active validators
   const activeTotals = elected
     .filter(({ isActive }) => isActive)
     .map(({ bondTotal }) => bondTotal)
     .sort((a, b) => a.cmp(b));
+
   const totalStaked = activeTotals.reduce((total: BN, value) => total.iadd(value), new BN(0));
   const avgStaked = totalStaked.divn(activeTotals.length);
-  const inflation = _calcInflation(api, totalStaked, totalIssuance);
+  console.log('guqianfeng average staked', totalStaked, avgStaked, activeTotals.length);
 
+  const inflation = _calcInflation(api, totalStaked, totalIssuance);
+  console.log('guqianfeng inflation', inflation);
   // add the explicit stakedReturn
   !avgStaked.isZero() && elected.forEach((e): void => {
     if (!e.skipRewards) {
@@ -563,6 +571,7 @@ function _extractTargetsInfo(
   }, BN_ZERO);
 
   // all validators, calc median commission
+  console.log('guqianfeng get median commission');
   const validators = sortValidators(arrayFlatten([elected, waiting]));
   const commValues = validators.map(({ commissionPer }) => commissionPer).sort((a, b) => a - b);
   const midIndex = Math.floor(commValues.length / 2);
@@ -601,15 +610,32 @@ const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInf
   lastEra: activeEra.isZero() ? BN_ZERO : activeEra.subn(1),
   sessionLength
 });
+
+const getValidatorsLedgers = async (api: ApiPromise) => {
+  let validatorLedgers: PalletStakingStakingLedger[] = [];
+  const ledgers = await api.query.staking.ledger.entries();
+  for(let i = 0; i < ledgers.length; i++) {
+    const ledger: PalletStakingStakingLedger = ledgers[i][1].unwrap();
+    if(ledger.cmixId.toString() !== '') validatorLedgers.push(ledger);
+  }
+  return validatorLedgers;
+}
+
+const getTotalIssuance = async (api: ApiPromise) => {
+  // ###### totalIssuance 需要重新计算
+  return await api.query.balances.totalIssuance();
+}
+
 /**
- * Query all validators info. $$$$$$
+ * Query all validators info.
  */
 async function querySortedTargets(api: ApiPromise) {
   const historyDepth = await api.query.staking.historyDepth();
-  const totalIssuance: Balance = await api.query.balances.totalIssuance();
+  const totalIssuance: Balance = await getTotalIssuance(api);
   const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
   const waitingInfo:DeriveStakingWaiting = await api.derive.staking.waitingInfo({withPrefs: true});
   const info: DeriveSessionInfo = await api.derive.session.info();
+  const validatorsLedgers: PalletStakingStakingLedger[] = await getValidatorsLedgers(api);
 
   let minNominatorBond;
   try {
@@ -625,7 +651,7 @@ async function querySortedTargets(api: ApiPromise) {
   const currentRewardPoints = await api.query.staking.erasRewardPoints(era - 1);
 
   const partial = totalIssuance && electedInfo && waitingInfo && info
-  ? _extractTargetsInfo(api, electedInfo, waitingInfo, totalIssuance, _transfromEra(info), historyDepth, rewardPoints, currentRewardPoints, era)
+  ? _extractTargetsInfo(api, electedInfo, waitingInfo, totalIssuance, _transfromEra(info), historyDepth, rewardPoints, currentRewardPoints, validatorsLedgers, era)
   : {};
   return { inflation: { inflation: 0, stakedReturn: 0 }, medianComm: 0, ...partial, minNominatorBond: minNominatorBond };
 }

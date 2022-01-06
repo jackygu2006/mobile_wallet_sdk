@@ -2,7 +2,7 @@
   "name": "@polkawallet/extension",
   "description": "A Polkawallet signer for the @polkadot/api",
   "version": "0.2.0-beta.1",
-  "author": "Shawn Yang <dhryxy@gmail.com>",
+  "author": "Jacky Gu <guqianfeng@gmail.com>",
   "license": "Apache-2",
   "scripts": {
     "clean": "rm -rf dist/*",

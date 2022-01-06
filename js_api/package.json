@@ -1,15 +1,15 @@
 {
   "name": "@polkawallet/js-api",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "main": "index.js",
   "license": "Apache-2.0",
   "keywords": [
     "Polkadot",
     "Polkawallet"
   ],
-  "author": "Shawn yang <dhryxy@gmail.com>",
+  "author": "Jacky Gu <guqianfeng@gmail.com>",
   "maintainers": [
-    "Shawn Yang <dhryxy@gmail.com>"
+    "Jacky Gu <guqianfeng@gmail.com>"
   ],
   "repository": {
     "type": "git",
@@ -25,23 +25,14 @@
   },
   "homepage": ".",
   "resolutions": {
-    "@polkadot/api": "^6.1.2",
-    "@polkadot/hw-ledger": "^7.4.1",
-    "@polkadot/keyring": "^7.4.1",
-    "@polkadot/networks": "^7.4.1",
-    "@polkadot/phishing": "^0.6.250",
-    "@polkadot/types": "^6.1.2",
-    "@polkadot/util": "^7.4.1",
-    "@polkadot/util-crypto": "^7.4.1",
-    "@polkadot/x-rxjs": "^6.11.1",
+    "@polkadot/api": "^6.12.1",
     "styled-components": "^5.2.0",
     "typescript": "^4.2.4"
   },
   "dependencies": {
-    "@polkadot/api": "^6.1.1",
+    "@polkadot/api": "^6.12.1",
     "@polkadot/extension-dapp": "^0.40.3",
     "@polkadot/ui-shared": "0.85.1",
-    "@polkadot/wasm-crypto": "^4.1.2",
     "@walletconnect/client": "2.0.0-alpha.26",
     "bn.js": "^5.1.2",
     "buffer": "^6.0.3",

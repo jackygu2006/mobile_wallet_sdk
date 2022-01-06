@@ -7,7 +7,7 @@ function expect(actual, matcher) {
 async function runSettingsTest() {
   console.log("test connect");
   // const endpoint = "wss://kusama.api.onfinality.io/public-ws";
-  const endpoint = "wss://protonet.xxlabs.net";
+  const endpoint = "wss://mainnet.xxnet.io";
   const xxnetworkTypes = {
     // Bridge constants
     ChainId: 'u8',
