@@ -1,9 +1,9 @@
 import { ApiPromise } from "@polkadot/api";
-import type { Option, StorageKey } from '@polkadot/types';
+import type { Option, StorageKey, u128 } from '@polkadot/types';
 import { u8aConcat, u8aToHex, BN_ZERO, BN_MILLION, BN_ONE, formatBalance, isFunction, arrayFlatten } from '@polkadot/util';
 import BN from "bn.js";
 import { Buffer } from 'buffer';
-import { getInflationParams, Inflation } from './inflation';
+import { getInflationParams, Inflation, InflationParams } from './inflation';
 import { getStashInfo } from './account';
 
 import { 
@@ -397,14 +397,16 @@ function _extractSingleTarget (
       lastPayout = lastEra.sub(lastPayout).mul(eraLength);
     }
 
-    let cmixRoot:Hash;
+    let cmixRoot:Hash = null;
     let cmixId:string = '';
-    const ledgers: PalletStakingStakingLedger[] = validatorsLedgers.length === 0 ? [] : validatorsLedgers.filter((ledger: PalletStakingStakingLedger) => ledger.stash.toString() === key);
-    if(ledgers.length > 0) {
-      const ledger: PalletStakingStakingLedger = ledgers[0];
-      cmixRoot = ledger.cmixId;
-      cmixId = cmixRoot ? toBase64(toByteArray(cmixRoot)) : '';
-      // console.log("cmix===", ledger.stash.toString(), cmixRoot.toString(), cmixId);
+    if(validatorsLedgers !== null) {
+      const ledgers: PalletStakingStakingLedger[] = validatorsLedgers.length === 0 ? [] : validatorsLedgers.filter((ledger: PalletStakingStakingLedger) => ledger.stash.toString() === key);
+      if(ledgers.length > 0) {
+        const ledger: PalletStakingStakingLedger = ledgers[0];
+        cmixRoot = ledger.cmixId;
+        cmixId = cmixRoot ? toBase64(toByteArray(cmixRoot)) : '';
+        // console.log("cmix===", ledger.stash.toString(), cmixRoot.toString(), cmixId);
+      }
     }
 
     return {
@@ -414,7 +416,7 @@ function _extractSingleTarget (
       bondShare: 0,
       bondTotal,
       commissionPer: validatorPrefs.commission.unwrap().toNumber() / 10_000_000,
-      cmixRoot: cmixRoot === undefined ? '' : cmixRoot.toString(),
+      cmixRoot: cmixRoot === null ? '' : cmixRoot.toString(),
       cmixId,
       points: rewordPoints !== undefined && rewordPoints !== null ? JSON.parse(rewordPoints.individual)[accountId.toString()] : 0,
       currentPoints: currentRewardPoints !== undefined && currentRewardPoints !== null ? JSON.parse(currentRewardPoints.individual)[accountId.toString()] : 0,
@@ -444,10 +446,52 @@ function _extractSingleTarget (
 
   return [list, Object.keys(nominators)];
 }
-function _calcInflation (api: ApiPromise, totalStaked: BN, totalIssuance: BN): Inflation {
-  const { falloff, idealStake, maxInflation, minInflation } = getInflationParams(api);
+async function _getInflationParams(api: ApiPromise) {
+  try {
+    // Special case for xxnetwork
+    const params:any = await api.query.xxEconomics.inflationParams();
+    const inflationParams:InflationParams = {
+      maxInflation: 0.1, // This value is no-use, just make sure the type is InflationParams
+      falloff: params.falloff.div(1e9),
+      idealStake: params.idealStake.div(1e9),
+      minInflation: params.minInflation.div(1e9),
+    };
+    return inflationParams;
+  } catch (e) {
+    console.log("_getInflationParams is only for xxnetwork");
+    return getInflationParams(api);
+  }
+}
+
+async function _getIdealInterest(api: ApiPromise, maxInflation: number, idealStake: number): Promise<number> {
+  try {
+    // Get idealInterest from chain
+    const idealInterest:any = await api.query.xxEconomics.interestPoints();
+    const blockHeight = await api.query.system.number();
+    let interest = 0;
+    for(var i = 1; i < idealInterest.length; i++) {
+      if(blockHeight < idealInterest[i].block) {
+        interest = idealInterest[i - 1].interest;
+        break;
+      }
+    }
+    return interest / 1e9;
+  } catch (e) {
+    console.log("_getIdealInterest is only for xxnetwork");
+    return maxInflation / idealStake;
+  }
+}
+
+function _calcInflation (
+  inflationParams: InflationParams, 
+  idealInterest: number,
+  totalStaked: BN, 
+  totalIssuance: BN,
+): Inflation {
+  const { falloff, idealStake, minInflation } = inflationParams;
   const stakedFraction = totalStaked.muln(1_000_000).div(totalIssuance).toNumber() / 1_000_000;
-  const idealInterest = maxInflation / idealStake;
+  // console.log("guqianfeng _calcInflation", idealInterest, totalStaked, totalIssuance, stakedFraction);
+  // console.log("guqianfeng inflationParams", JSON.stringify(inflationParams));
   const inflation = 100 * (minInflation + (
     stakedFraction <= idealStake
       ? (stakedFraction * (idealInterest - (minInflation / idealStake)))
@@ -519,7 +563,7 @@ interface SortedTargets {
   minNominated: BN;
   nominators?: string[];
   totalStaked?: BN;
-  totalIssuance?: BN;
+  totalIssuance?: string;
   validators?: any[];
   validatorIds?: string[];
   waitingIds?: string[];
@@ -538,12 +582,13 @@ function _extractTargetsInfo(
   rewardPoints?: any, 
   currentRewardPoints?: any,
   validatorsLedgers?: PalletStakingStakingLedger[],
-  currentEra?: number, 
+  currentEra?: number,
+  inflationParams?: InflationParams,
+  idealInterest?: number
   ): Partial<SortedTargets> {
   const [elected, nominators] = _extractSingleTarget(api, electedDerive, lastEraInfo, historyDepth, rewardPoints, currentRewardPoints, validatorsLedgers);
   const [waiting] = _extractSingleTarget(api, waitingDerive, lastEraInfo, null, null, null, validatorsLedgers);
   
-  console.log('guqianfeng activeTotals');
   // Sort all active validators
   const activeTotals = elected
     .filter(({ isActive }) => isActive)
@@ -552,15 +597,16 @@ function _extractTargetsInfo(
 
   const totalStaked = activeTotals.reduce((total: BN, value) => total.iadd(value), new BN(0));
   const avgStaked = totalStaked.divn(activeTotals.length);
-  console.log('guqianfeng average staked', totalStaked, avgStaked, activeTotals.length);
 
-  const inflation = _calcInflation(api, totalStaked, totalIssuance);
-  console.log('guqianfeng inflation', inflation);
-  // add the explicit stakedReturn
+  const inflation = _calcInflation(inflationParams, idealInterest, totalStaked, totalIssuance);
+  // console.log('guqianfeng average staked', totalStaked, totalIssuance);
+  // console.log('guqianfeng inflation', JSON.stringify(inflation));
+
+  // calculate stakedReturn
   !avgStaked.isZero() && elected.forEach((e): void => {
     if (!e.skipRewards) {
       e.stakedReturn = inflation.stakedReturn * avgStaked.mul(BN_MILLION).div(e.bondTotal).toNumber() / BN_MILLION.toNumber();
-      e.stakedReturnCmp = e.stakedReturn * (100 - e.commissionPer) / 100;
+      e.stakedReturnCmp = e.stakedReturn * (100 - e.commissionPer) / 100; // ###### 加上Point和团队质押对预期收益率的影响
     }
   });
 
@@ -571,7 +617,6 @@ function _extractTargetsInfo(
   }, BN_ZERO);
 
   // all validators, calc median commission
-  console.log('guqianfeng get median commission');
   const validators = sortValidators(arrayFlatten([elected, waiting]));
   const commValues = validators.map(({ commissionPer }) => commissionPer).sort((a, b) => a - b);
   const midIndex = Math.floor(commValues.length / 2);
@@ -595,7 +640,7 @@ function _extractTargetsInfo(
     medianComm,
     minNominated,
     nominators,
-    totalIssuance,
+    totalIssuance: totalIssuance.toString(),
     totalStaked,
     validatorIds,
     validators,
@@ -621,9 +666,21 @@ const getValidatorsLedgers = async (api: ApiPromise) => {
   return validatorLedgers;
 }
 
-const getTotalIssuance = async (api: ApiPromise) => {
-  // ###### totalIssuance 需要重新计算
-  return await api.query.balances.totalIssuance();
+const getTotalIssuance = async (api: ApiPromise): Promise<BN> => {
+  const totalIssuance = await api.query.balances.totalIssuance();
+  try {
+    // for xxnetwork
+    const rewardsPoolAccount = await api.consts.xxEconomics.rewardsPoolAccount;
+    const balanceRPA = await api.query.balances.account(rewardsPoolAccount);
+    const totalCustody = await api.query.xxCustody.totalCustody();
+    const liquidityRewards = await api.query.xxEconomics.liquidityRewards();
+    const totalStakeableIssuance = totalIssuance.sub((<any>balanceRPA).free).sub(new BN(totalCustody.toString())).sub(new BN(liquidityRewards.toString()));
+    return totalStakeableIssuance;
+  } catch (e) {
+    // for standard substrate chain
+    console.log("getTotalIssuance is only for xxnetwork");
+    return totalIssuance; // 如果不是XX，用这个方法
+  }
 }
 
 /**
@@ -631,11 +688,19 @@ const getTotalIssuance = async (api: ApiPromise) => {
  */
 async function querySortedTargets(api: ApiPromise) {
   const historyDepth = await api.query.staking.historyDepth();
-  const totalIssuance: Balance = await getTotalIssuance(api);
   const electedInfo:DeriveStakingElected = await api.derive.staking.electedInfo({withExposure: true, withPrefs: true});
   const waitingInfo:DeriveStakingWaiting = await api.derive.staking.waitingInfo({withPrefs: true});
   const info: DeriveSessionInfo = await api.derive.session.info();
-  const validatorsLedgers: PalletStakingStakingLedger[] = await getValidatorsLedgers(api);
+  const totalIssuance = await getTotalIssuance(api);
+  const inflationParams = await _getInflationParams(api);
+  const idealInterest = await _getIdealInterest(api, inflationParams.maxInflation, inflationParams.idealStake);
+
+  let validatorsLedgers: PalletStakingStakingLedger[] = null;
+  try {
+    validatorsLedgers = await getValidatorsLedgers(api);
+  } catch (err) {
+    console.log("getValidatorsLedgers is only for xxnetwork");
+  }
 
   let minNominatorBond;
   try {
@@ -651,7 +716,20 @@ async function querySortedTargets(api: ApiPromise) {
   const currentRewardPoints = await api.query.staking.erasRewardPoints(era - 1);
 
   const partial = totalIssuance && electedInfo && waitingInfo && info
-  ? _extractTargetsInfo(api, electedInfo, waitingInfo, totalIssuance, _transfromEra(info), historyDepth, rewardPoints, currentRewardPoints, validatorsLedgers, era)
+  ? _extractTargetsInfo(
+    api, 
+    electedInfo, 
+    waitingInfo, 
+    totalIssuance, 
+    _transfromEra(info), 
+    historyDepth, 
+    rewardPoints, 
+    currentRewardPoints, 
+    validatorsLedgers, 
+    era, 
+    inflationParams, 
+    idealInterest
+  )
   : {};
   return { inflation: { inflation: 0, stakedReturn: 0 }, medianComm: 0, ...partial, minNominatorBond: minNominatorBond };
 }

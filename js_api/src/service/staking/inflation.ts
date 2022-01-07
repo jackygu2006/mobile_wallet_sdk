@@ -10,7 +10,7 @@ export interface Inflation {
   stakedReturn: number;
 }
 
-interface InflationParams {
+export interface InflationParams {
   falloff: number;
   idealStake: number;
   maxInflation: number;
