@@ -490,8 +490,9 @@ function _calcInflation (
 ): Inflation {
   const { falloff, idealStake, minInflation } = inflationParams;
   const stakedFraction = totalStaked.muln(1_000_000).div(totalIssuance).toNumber() / 1_000_000;
-  // console.log("guqianfeng _calcInflation", idealInterest, totalStaked, totalIssuance, stakedFraction);
-  // console.log("guqianfeng inflationParams", JSON.stringify(inflationParams));
+
+  console.log("guqianfeng _calcInflation", idealInterest, totalStaked, totalIssuance, stakedFraction);
+  console.log("guqianfeng inflationParams", JSON.stringify(inflationParams));
   const inflation = 100 * (minInflation + (
     stakedFraction <= idealStake
       ? (stakedFraction * (idealInterest - (minInflation / idealStake)))
@@ -597,10 +598,11 @@ function _extractTargetsInfo(
 
   const totalStaked = activeTotals.reduce((total: BN, value) => total.iadd(value), new BN(0));
   const avgStaked = totalStaked.divn(activeTotals.length);
-
+  console.log("guqianfeng avgStaked: ", avgStaked, activeTotals.length);
+  
   const inflation = _calcInflation(inflationParams, idealInterest, totalStaked, totalIssuance);
-  // console.log('guqianfeng average staked', totalStaked, totalIssuance);
-  // console.log('guqianfeng inflation', JSON.stringify(inflation));
+  console.log('guqianfeng average staked', totalStaked, totalIssuance);
+  console.log('guqianfeng inflation', JSON.stringify(inflation));
 
   // calculate stakedReturn
   !avgStaked.isZero() && elected.forEach((e): void => {
@@ -671,10 +673,23 @@ const getTotalIssuance = async (api: ApiPromise): Promise<BN> => {
   try {
     // for xxnetwork
     const rewardsPoolAccount = await api.consts.xxEconomics.rewardsPoolAccount;
+    const rewardsPoolBalance = await api.query.system.account(rewardsPoolAccount);
     const balanceRPA = await api.query.balances.account(rewardsPoolAccount);
     const totalCustody = await api.query.xxCustody.totalCustody();
     const liquidityRewards = await api.query.xxEconomics.liquidityRewards();
-    const totalStakeableIssuance = totalIssuance.sub((<any>balanceRPA).free).sub(new BN(totalCustody.toString())).sub(new BN(liquidityRewards.toString()));
+    const publicTestnetAccount = await api.consts.xxPublic.testnetAccount;
+    const publicTestnetBalance = await api.query.system.account(publicTestnetAccount);
+    const publicSaleAccount = await api.consts.xxPublic.saleAccount;
+    const publicSaleBalance = await api.query.system.account(publicSaleAccount);
+
+    const totalStakeableIssuance = totalIssuance
+                                  .sub(new BN((<any>rewardsPoolBalance).data.free.toString()))
+                                  .sub((<any>balanceRPA).free)
+                                  .sub(new BN(totalCustody.toString()))
+                                  .sub(new BN(liquidityRewards.toString()))
+                                  .sub(new BN((<any>publicTestnetBalance).data.free.toString()))
+                                  .sub(new BN((<any>publicSaleBalance).data.free.toString()));
+    console.log('guqianfeng totalStakeableIssuance', totalStakeableIssuance);
     return totalStakeableIssuance;
   } catch (e) {
     // for standard substrate chain
