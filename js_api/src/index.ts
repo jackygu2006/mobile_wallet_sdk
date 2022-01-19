@@ -24,6 +24,7 @@ send("log", "main js loaded");
 async function connect(nodes: string[], registryTypes: Object) {
   // console.log("registryTypes: ");
   // console.log(JSON.stringify(registryTypes));
+  console.log('jackygu nodes', nodes);
   return new Promise(async (resolve, reject) => {
     const wsProvider = new WsProvider(nodes);
     try {

@@ -166,6 +166,7 @@ class WebViewRunner {
 
   Future<NetworkParams?> connectNode(
       List<NetworkParams> nodes, Object registryTypes) async {
+    print("jackygu connectNode" + jsonEncode(nodes));
     final dynamic res = await evalJavascript(
         'settings.connect(${jsonEncode(nodes.map((e) => e.endpoint).toList())}, ${jsonEncode(registryTypes)})');
     print(res);

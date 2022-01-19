@@ -450,14 +450,23 @@ async function _getInflationParams(api: ApiPromise) {
   try {
     // Special case for xxnetwork
     const params:any = await api.query.xxEconomics.inflationParams();
+    console.log('jackygu xx', params);
+    const falloff = params.falloff / 1000000000;
+    const idealStake = params.idealStake / 1000000000;
+    const minInflation = params.minInflation / 1000000000;
+    // const billion = new BN(1000000000);
+    // console.log('jackygu xxx falloff', falloff);
+    // console.log('jackygu xxx idealStake', idealStake);
+    // console.log('jackygu xxx minInflation', minInflation);
     const inflationParams:InflationParams = {
       maxInflation: 0.1, // This value is no-use, just make sure the type is InflationParams
-      falloff: params.falloff.div(1e9),
-      idealStake: params.idealStake.div(1e9),
-      minInflation: params.minInflation.div(1e9),
+      falloff,
+      idealStake,
+      minInflation,
     };
     return inflationParams;
   } catch (e) {
+    console.log(e.message);
     console.log("_getInflationParams is only for xxnetwork");
     return getInflationParams(api);
   }
@@ -491,8 +500,8 @@ function _calcInflation (
   const { falloff, idealStake, minInflation } = inflationParams;
   const stakedFraction = totalStaked.muln(1_000_000).div(totalIssuance).toNumber() / 1_000_000;
 
-  console.log("guqianfeng _calcInflation", idealInterest, totalStaked, totalIssuance, stakedFraction);
-  console.log("guqianfeng inflationParams", JSON.stringify(inflationParams));
+  console.log("jackygu _calcInflation", idealInterest, totalStaked, totalIssuance, stakedFraction);
+  console.log("jackygu inflationParams", JSON.stringify(inflationParams));
   const inflation = 100 * (minInflation + (
     stakedFraction <= idealStake
       ? (stakedFraction * (idealInterest - (minInflation / idealStake)))
@@ -570,7 +579,7 @@ interface SortedTargets {
   waitingIds?: string[];
   avgPoints?: number;
   currentEra?: number;
-
+  nextEraReward?: string;
 }
 
 function _extractTargetsInfo(
@@ -598,11 +607,13 @@ function _extractTargetsInfo(
 
   const totalStaked = activeTotals.reduce((total: BN, value) => total.iadd(value), new BN(0));
   const avgStaked = totalStaked.divn(activeTotals.length);
-  console.log("guqianfeng avgStaked: ", avgStaked, activeTotals.length);
+  console.log("jackygu avgStaked: ", avgStaked, activeTotals.length);
   
   const inflation = _calcInflation(inflationParams, idealInterest, totalStaked, totalIssuance);
-  console.log('guqianfeng average staked', totalStaked, totalIssuance);
-  console.log('guqianfeng inflation', JSON.stringify(inflation));
+  const nextEraReward = Math.floor(totalStaked.mul(new BN(inflation.stakedReturn)) / 365.25 / 100);
+  console.log('jackygu average staked', totalStaked, totalIssuance);
+  console.log('jackygu inflation', JSON.stringify(inflation));
+  console.log('jackygu next reward', nextEraReward);
 
   // calculate stakedReturn
   !avgStaked.isZero() && elected.forEach((e): void => {
@@ -649,6 +660,7 @@ function _extractTargetsInfo(
     waitingIds,
     avgPoints,
     currentEra,
+    nextEraReward: nextEraReward.toString(),
   };
 }
 const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInfo): LastEra => ({
@@ -689,7 +701,7 @@ const getTotalIssuance = async (api: ApiPromise): Promise<BN> => {
                                   .sub(new BN(liquidityRewards.toString()))
                                   .sub(new BN((<any>publicTestnetBalance).data.free.toString()))
                                   .sub(new BN((<any>publicSaleBalance).data.free.toString()));
-    console.log('guqianfeng totalStakeableIssuance', totalStakeableIssuance);
+    console.log('jackygu totalStakeableIssuance', totalStakeableIssuance);
     return totalStakeableIssuance;
   } catch (e) {
     // for standard substrate chain
