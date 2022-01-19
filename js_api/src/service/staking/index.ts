@@ -455,9 +455,9 @@ async function _getInflationParams(api: ApiPromise) {
     const idealStake = params.idealStake / 1000000000;
     const minInflation = params.minInflation / 1000000000;
     // const billion = new BN(1000000000);
-    // console.log('jackygu xxx falloff', falloff);
-    // console.log('jackygu xxx idealStake', idealStake);
-    // console.log('jackygu xxx minInflation', minInflation);
+    console.log('jackygu xxx falloff', falloff);
+    console.log('jackygu xxx idealStake', idealStake);
+    console.log('jackygu xxx minInflation', minInflation);
     const inflationParams:InflationParams = {
       maxInflation: 0.1, // This value is no-use, just make sure the type is InflationParams
       falloff,
@@ -476,14 +476,17 @@ async function _getIdealInterest(api: ApiPromise, maxInflation: number, idealSta
   try {
     // Get idealInterest from chain
     const idealInterest:any = await api.query.xxEconomics.interestPoints();
+    console.log('jackygu idealInterest', idealInterest);
     const blockHeight = await api.query.system.number();
+    console.log('jackygu blockHeight', blockHeight);
     let interest = 0;
     for(var i = 1; i < idealInterest.length; i++) {
-      if(blockHeight < idealInterest[i].block) {
+      if(blockHeight < idealInterest[i].block.toNumber()) {
         interest = idealInterest[i - 1].interest;
         break;
       }
     }
+    console.log('jackygu interest', interest);
     return interest / 1e9;
   } catch (e) {
     console.log("_getIdealInterest is only for xxnetwork");
