@@ -582,7 +582,7 @@ interface SortedTargets {
   waitingIds?: string[];
   avgPoints?: number;
   currentEra?: number;
-  nextEraReward?: string;
+  nextEraReward?: BN;
 }
 
 function _extractTargetsInfo(
@@ -613,16 +613,21 @@ function _extractTargetsInfo(
   console.log("jackygu avgStaked: ", avgStaked, activeTotals.length);
   
   const inflation = _calcInflation(inflationParams, idealInterest, totalStaked, totalIssuance);
-  const nextEraReward = Math.floor(totalStaked.mul(new BN(inflation.stakedReturn)) / 365.25 / 100);
+  const nextEraReward:BN = totalStaked.mul(new BN(Math.floor(inflation.stakedReturn * 1000000))).div(new BN('36525000000')); // 365.25 days per year
   console.log('jackygu average staked', totalStaked, totalIssuance);
   console.log('jackygu inflation', JSON.stringify(inflation));
-  console.log('jackygu next reward', nextEraReward);
+  console.log('jackygu next reward', inflation.stakedReturn, nextEraReward);
+
+  const avgPoints = currentRewardPoints !== undefined && currentRewardPoints !== null ? parseInt(currentRewardPoints.total) / elected.length : 0;
 
   // calculate stakedReturn
   !avgStaked.isZero() && elected.forEach((e): void => {
     if (!e.skipRewards) {
       e.stakedReturn = inflation.stakedReturn * avgStaked.mul(BN_MILLION).div(e.bondTotal).toNumber() / BN_MILLION.toNumber();
-      e.stakedReturnCmp = e.stakedReturn * (100 - e.commissionPer) / 100; // ###### 加上Point和团队质押对预期收益率的影响
+      const pointPlus = avgPoints === 0 || e.currentPoints === null || e.currentPoints === undefined ? 1 : e.currentPoints / avgPoints; 
+      // ###### 加上Point和团队质押对预期收益率的影响
+      e.stakedReturnCmp = e.stakedReturn * (100 - e.commissionPer) / 100 * pointPlus;
+      // console.log('jackygu pointPlus', e.stakedReturnCmp, e.stakedReturnCmp * pointPlus, pointPlus);
     }
   });
 
@@ -647,8 +652,6 @@ function _extractTargetsInfo(
   const waitingIds = waiting.map(({ key }) => key);
   const validatorIds = arrayFlatten([electedIds, waitingIds]);
 
-  const avgPoints = currentRewardPoints !== undefined && currentRewardPoints !== null ? parseInt(currentRewardPoints.total) / validators.length : 0;
-
   return {
     avgStaked,
     inflation,
@@ -663,7 +666,7 @@ function _extractTargetsInfo(
     waitingIds,
     avgPoints,
     currentEra,
-    nextEraReward: nextEraReward.toString(),
+    nextEraReward,
   };
 }
 const _transfromEra = ({ activeEra, eraLength, sessionLength }: DeriveSessionInfo): LastEra => ({
