@@ -450,14 +450,14 @@ async function _getInflationParams(api: ApiPromise) {
   try {
     // Special case for xxnetwork
     const params:any = await api.query.xxEconomics.inflationParams();
-    console.log('jackygu xx', params);
+    // console.log('jackygu xx', params);
     const falloff = params.falloff / 1000000000;
     const idealStake = params.idealStake / 1000000000;
     const minInflation = params.minInflation / 1000000000;
     // const billion = new BN(1000000000);
-    console.log('jackygu xxx falloff', falloff);
-    console.log('jackygu xxx idealStake', idealStake);
-    console.log('jackygu xxx minInflation', minInflation);
+    // console.log('jackygu xxx falloff', falloff);
+    // console.log('jackygu xxx idealStake', idealStake);
+    // console.log('jackygu xxx minInflation', minInflation);
     const inflationParams:InflationParams = {
       maxInflation: 0.1, // This value is no-use, just make sure the type is InflationParams
       falloff,
@@ -476,9 +476,9 @@ async function _getIdealInterest(api: ApiPromise, maxInflation: number, idealSta
   try {
     // Get idealInterest from chain
     const idealInterest:any = await api.query.xxEconomics.interestPoints();
-    console.log('jackygu idealInterest', idealInterest);
+    // console.log('jackygu idealInterest', idealInterest);
     const blockHeight = await api.query.system.number();
-    console.log('jackygu blockHeight', blockHeight);
+    // console.log('jackygu blockHeight', blockHeight);
     let interest = 0;
     for(var i = 1; i < idealInterest.length; i++) {
       if(blockHeight < idealInterest[i].block.toNumber()) {
@@ -486,7 +486,7 @@ async function _getIdealInterest(api: ApiPromise, maxInflation: number, idealSta
         break;
       }
     }
-    console.log('jackygu interest', interest);
+    // console.log('jackygu interest', interest);
     return interest / 1e9;
   } catch (e) {
     console.log("_getIdealInterest is only for xxnetwork");
@@ -503,8 +503,8 @@ function _calcInflation (
   const { falloff, idealStake, minInflation } = inflationParams;
   const stakedFraction = totalStaked.muln(1_000_000).div(totalIssuance).toNumber() / 1_000_000;
 
-  console.log("jackygu _calcInflation", idealInterest, totalStaked, totalIssuance, stakedFraction);
-  console.log("jackygu inflationParams", JSON.stringify(inflationParams));
+  // console.log("jackygu _calcInflation", idealInterest, totalStaked, totalIssuance, stakedFraction);
+  // console.log("jackygu inflationParams", JSON.stringify(inflationParams));
   const inflation = 100 * (minInflation + (
     stakedFraction <= idealStake
       ? (stakedFraction * (idealInterest - (minInflation / idealStake)))
@@ -610,13 +610,13 @@ function _extractTargetsInfo(
 
   const totalStaked = activeTotals.reduce((total: BN, value) => total.iadd(value), new BN(0));
   const avgStaked = totalStaked.divn(activeTotals.length);
-  console.log("jackygu avgStaked: ", avgStaked, activeTotals.length);
+  // console.log("jackygu avgStaked: ", avgStaked, activeTotals.length);
   
   const inflation = _calcInflation(inflationParams, idealInterest, totalStaked, totalIssuance);
   const nextEraReward:BN = totalStaked.mul(new BN(Math.floor(inflation.stakedReturn * 1000000))).div(new BN('36525000000')); // 365.25 days per year
-  console.log('jackygu average staked', totalStaked, totalIssuance);
-  console.log('jackygu inflation', JSON.stringify(inflation));
-  console.log('jackygu next reward', inflation.stakedReturn, nextEraReward);
+  // console.log('jackygu average staked', totalStaked, totalIssuance);
+  // console.log('jackygu inflation', JSON.stringify(inflation));
+  // console.log('jackygu next reward', inflation.stakedReturn, nextEraReward);
 
   const avgPoints = currentRewardPoints !== undefined && currentRewardPoints !== null ? parseInt(currentRewardPoints.total) / elected.length : 0;
 
@@ -707,7 +707,7 @@ const getTotalIssuance = async (api: ApiPromise): Promise<BN> => {
                                   .sub(new BN(liquidityRewards.toString()))
                                   .sub(new BN((<any>publicTestnetBalance).data.free.toString()))
                                   .sub(new BN((<any>publicSaleBalance).data.free.toString()));
-    console.log('jackygu totalStakeableIssuance', totalStakeableIssuance);
+    // console.log('jackygu totalStakeableIssuance', totalStakeableIssuance);
     return totalStakeableIssuance;
   } catch (e) {
     // for standard substrate chain
