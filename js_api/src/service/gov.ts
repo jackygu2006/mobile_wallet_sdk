@@ -160,7 +160,9 @@ const TREASURY_ACCOUNT = stringToU8a("modlpy/trsry".padEnd(32, "\0"));
  * Query overview of treasury and spend proposals.
  */
 async function getTreasuryOverview(api: ApiPromise) {
+  // ###### The TREASURY_ACCOUNT is not default from modlpy/trsry, ask teams for that
   const proposals = await api.derive.treasury.proposals();
+  console.log('jackygu treasury acc', TREASURY_ACCOUNT);
   const balance = await api.derive.balances.account(TREASURY_ACCOUNT as AccountId);
   const res: any = {
     ...proposals,

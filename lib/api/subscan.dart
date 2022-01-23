@@ -89,7 +89,6 @@ class SubScanApi {
   }
 
   Future<Map> fetchTxsAsync(
-    // ######
     String module, {
     String? call,
     int page = 0,
@@ -120,7 +119,6 @@ class SubScanApi {
   }
 
   Future<Map> fetchRewardTxsAsync({
-    // ######
     int page = 0,
     int size = tx_list_page_size,
     String? sender,
@@ -172,7 +170,6 @@ class SubScanApi {
   }
 
   static Future<Map?> fetchTxs(SubScanRequestParams para) async {
-    // ###### 这个API在subscan中已经有了
     String url = '${getSnEndpoint(para.network!)}/extrinsics';
     Map params = {
       "page": para.page,
@@ -204,7 +201,6 @@ class SubScanApi {
   }
 
   static Future<Map?> fetchRewardTxs(SubScanRequestParams para) async {
-    // ######
     String url = '${getSnEndpoint(para.network!)}/account/reward_slash';
     Map params = {
       "address": para.address,

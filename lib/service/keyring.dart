@@ -58,7 +58,7 @@ class ServiceKeyring {
     return acc['mnemonic'];
   }
 
-  /// Generate a set of new Quantum Secured mnemonic. ######
+  /// Generate a set of new Quantum Secured mnemonic.
   Future<QSMnemonic?> generateQSMnemonic(String? password) async {
     // Get sleeve.wasm
     final byteBuffer = (await rootBundle

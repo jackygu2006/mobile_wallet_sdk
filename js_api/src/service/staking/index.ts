@@ -625,7 +625,6 @@ function _extractTargetsInfo(
     if (!e.skipRewards) {
       e.stakedReturn = inflation.stakedReturn * avgStaked.mul(BN_MILLION).div(e.bondTotal).toNumber() / BN_MILLION.toNumber();
       const pointPlus = avgPoints === 0 ? 1 : e.currentPoints === null || e.currentPoints === undefined ? 0 : e.currentPoints / avgPoints; 
-      // ###### 加上Point和团队质押对预期收益率的影响
       e.stakedReturnCmp = e.stakedReturn * (100 - e.commissionPer) / 100 * pointPlus;
       // console.log('jackygu pointPlus', e.stakedReturnCmp, e.stakedReturnCmp * pointPlus, pointPlus);
     }
