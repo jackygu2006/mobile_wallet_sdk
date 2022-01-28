@@ -618,7 +618,8 @@ function _extractTargetsInfo(
   // console.log('jackygu inflation', JSON.stringify(inflation));
   // console.log('jackygu next reward', inflation.stakedReturn, nextEraReward);
 
-  const avgPoints = currentRewardPoints !== undefined && currentRewardPoints !== null ? parseInt(currentRewardPoints.total) / elected.length : 0;
+  // 在计算avgPoints时，需要去掉官方8个节点的point，并除以当前验证人数量-8
+  const avgPoints = currentRewardPoints !== undefined && currentRewardPoints !== null ? (parseInt(currentRewardPoints.total) - 8 * 4000) / (elected.length - 8): 0;
 
   // calculate stakedReturn
   !avgStaked.isZero() && elected.forEach((e): void => {
