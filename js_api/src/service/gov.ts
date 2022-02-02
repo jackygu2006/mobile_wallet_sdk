@@ -3,7 +3,7 @@ import { DeriveCollectiveProposal, DeriveReferendumExt, DeriveCouncilVotes } fro
 import { SubmittableExtrinsic } from "@polkadot/api/types";
 import { GenericCall, getTypeDef, Option, Bytes } from "@polkadot/types";
 import { OpenTip, AccountId, FunctionMetadataLatest } from "@polkadot/types/interfaces";
-import { formatBalance, stringToU8a, BN_ZERO, hexToString } from "@polkadot/util";
+import { formatBalance, stringToU8a, BN_ZERO, hexToString, u8aConcat } from "@polkadot/util";
 import BN from "bn.js";
 
 import { approxChanges } from "../utils/referendumApproxChanges";
@@ -155,12 +155,13 @@ async function fetchCouncilVotes(api: ApiPromise) {
   }, {});
 }
 
-const TREASURY_ACCOUNT = stringToU8a("modlpy/trsry".padEnd(32, "\0"));
+
 /**
  * Query overview of treasury and spend proposals.
  */
 async function getTreasuryOverview(api: ApiPromise) {
-  // ###### The TREASURY_ACCOUNT is not default from modlpy/trsry, ask teams for that
+  // const TREASURY_ACCOUNT = stringToU8a("modlpy/trsry".padEnd(32, "\0"));
+  const TREASURY_ACCOUNT = u8aConcat('modl', api.consts.treasury && api.consts.treasury.palletId ? api.consts.treasury.palletId.toU8a(true) : 'py/trsry', new Uint8Array(20));
   const proposals = await api.derive.treasury.proposals();
   console.log('jackygu treasury acc', TREASURY_ACCOUNT);
   const balance = await api.derive.balances.account(TREASURY_ACCOUNT as AccountId);
