@@ -32,7 +32,6 @@ class ServiceTx {
     serviceRoot.webView!.addMsgHandler(msgId, onStatusChange);
     final code =
         'keyring.sendTx(api, ${jsonEncode(txInfo)}, $params, "$password", "$msgId")';
-    // print(code);
     final dynamic res = await serviceRoot.webView!.evalJavascript(code);
     serviceRoot.webView!.removeMsgHandler(msgId);
 

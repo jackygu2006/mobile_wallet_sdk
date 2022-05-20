@@ -163,7 +163,6 @@ async function getTreasuryOverview(api: ApiPromise) {
   // const TREASURY_ACCOUNT = stringToU8a("modlpy/trsry".padEnd(32, "\0"));
   const TREASURY_ACCOUNT = u8aConcat('modl', api.consts.treasury && api.consts.treasury.palletId ? api.consts.treasury.palletId.toU8a(true) : 'py/trsry', new Uint8Array(20));
   const proposals = await api.derive.treasury.proposals();
-  console.log('jackygu treasury acc', TREASURY_ACCOUNT);
   const balance = await api.derive.balances.account(TREASURY_ACCOUNT as AccountId);
   const res: any = {
     ...proposals,

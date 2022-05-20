@@ -145,17 +145,17 @@ class SubScanApi {
   }
 
   static Future<Map?> fetchTransfers(SubScanRequestParams params) async {
-    // ###### 获取与当前帐号相关的交易记录
     String url = '${getSnEndpoint(params.network!)}/transfers';
     String body = jsonEncode({
       "page": params.page,
       "row": params.row,
       "address": params.address,
     });
-    print("====== fetchTransfers $url 开始 ======");
+    print("====== fetchTransfers $url Start ======");
     Response res =
         await post(Uri.parse(url), headers: post_headers, body: body);
-    print("====== fetchTransfers $url 结束 ======");
+    HttpOverrides.global = MyHttpOverrides();
+    print("====== fetchTransfers $url End ======");
     if (res.body != null) {
       final obj = await compute(jsonDecode, res.body);
       if (params.sendPort != null) {
@@ -183,16 +183,19 @@ class SubScanApi {
       params['call'] = para.call;
     }
     String body = jsonEncode(params);
-    print("====== fetchTxs $url 开始 ======");
+    print("====== fetchTxs $url Start ======");
     Response res =
         await post(Uri.parse(url), headers: post_headers, body: body);
-    print("====== fetchTxs $url 结束 ======");
-    if (res.body != null) {
+    HttpOverrides.global = MyHttpOverrides();
+    print("====== fetchTxs $url End ======");
+    if (res.statusCode != 200) {
       final obj = await compute(jsonDecode, res.body);
       if (para.sendPort != null) {
         para.sendPort!.send(obj['data']);
       }
       return obj['data'];
+    } else {
+      print("Fetch extrinsics data error...");
     }
     if (para.sendPort != null) {
       para.sendPort!.send({});
@@ -208,16 +211,19 @@ class SubScanApi {
       "row": para.row,
     };
     String body = jsonEncode(params);
-    print("====== fetchRewardTxs $url 开始 ======");
+    print("====== fetchRewardTxs $url $body Star ======");
     Response res =
         await post(Uri.parse(url), headers: post_headers, body: body);
-    print("====== fetchRewardTxs $url 结束 ======");
-    if (res.body != null) {
+    HttpOverrides.global = MyHttpOverrides();
+    print("====== fetchRewardTxs Over  ======");
+    if (res.statusCode == 200) {
       final obj = await compute(jsonDecode, res.body);
       if (para.sendPort != null) {
         para.sendPort!.send(obj['data']);
       }
       return obj['data'];
+    } else {
+      print("Fetch Reward Data Error...");
     }
     if (para.sendPort != null) {
       para.sendPort!.send({});
