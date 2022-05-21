@@ -8,18 +8,18 @@ import BN from "bn.js";
 
 import { approxChanges } from "../utils/referendumApproxChanges";
 
-function _extractMetaData(value: FunctionMetadataLatest) {
-  const params = GenericCall.filterOrigin(value).map(({ name, type }) => ({
-    name: name.toString(),
-    type: getTypeDef(type.toString()),
-  }));
-  const values = value.args.map((value) => ({
-    isValid: true,
-    value,
-  }));
-  const hash = value.hash;
-  return { hash, params, values };
-}
+// function _extractMetaData(value: FunctionMetadataLatest) {
+//   const params = GenericCall.filterOrigin(value).map(({ name, type }) => ({
+//     name: name.toString(),
+//     type: getTypeDef(type.toString()),
+//   }));
+//   const values = value.args.map((value) => ({
+//     isValid: true,
+//     value,
+//   }));
+//   const hash = value.hash;
+//   return { hash, params, values };
+// }
 
 function _transfromProposalMeta(proposal: any): {} {
   const { meta } = proposal.registry.findMetaCall(proposal.callIndex);
@@ -56,10 +56,10 @@ async function fetchReferendums(api: ApiPromise, address: string) {
   const referendums: DeriveReferendumExt[] = await api.derive.democracy.referendums();
   const sqrtElectorate = await api.derive.democracy.sqrtElectorate();
   const details = referendums.map(({ image, imageHash, status, votedAye, votedNay, votedTotal, votes }) => {
-    let proposalMeta: any = {};
+		let proposalMeta: any = {};
     let parsedMeta: any = {};
     if (image && image.proposal) {
-      proposalMeta = _extractMetaData(image.proposal.registry.findMetaCall(image.proposal.callIndex).meta);
+      // proposalMeta = _extractMetaData(image.proposal.registry.findMetaCall(image.proposal.callIndex).meta);
       parsedMeta = _transfromProposalMeta(image.proposal);
       image.proposal = image.proposal.toHuman() as any;
       if (image.proposal?.method == "setCode") {
@@ -70,7 +70,6 @@ async function fetchReferendums(api: ApiPromise, address: string) {
         } as any;
       }
     }
-
     const changes = approxChanges(status.threshold, sqrtElectorate, {
       votedAye,
       votedNay,
@@ -129,6 +128,7 @@ async function getReferendumVoteConvictions(api: ApiPromise) {
  */
 async function fetchProposals(api: ApiPromise) {
   const proposals = await api.derive.democracy.proposals();
+	// console.log("###### fetchProposals", JSON.stringify(proposals));
   return proposals.map((e) => {
     if (e.image && e.image.proposal) {
       e.image.proposal = _transfromProposalMeta(e.image.proposal) as any;
@@ -142,6 +142,7 @@ async function fetchProposals(api: ApiPromise) {
  */
 async function fetchCouncilVotes(api: ApiPromise) {
   const councilVotes: DeriveCouncilVotes = await api.derive.council.votes();
+	// console.log("###### fetchCouncilVotes", councilVotes);
   return councilVotes.reduce((result, [voter, { stake, votes }]) => {
     const res: any = { ...result };
     votes.forEach((candidate) => {
